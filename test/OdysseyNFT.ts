@@ -43,23 +43,23 @@ describe("deploy contract", function() {
 
   describe('pauseMinting and unpauseMinting', () => {
         it('should pause and unpause minting', async () => {
-          const { OdysseyNFT, maxTokens, mintPrice } = await loadFixture(deployContract);
+          const { OdysseyNFT } = await loadFixture(deployContract);
 
-          expect (await OdysseyNFT.mintingPaused()).to.be.false;
+          expect (await OdysseyNFT.paused()).to.be.false;
     
-          await OdysseyNFT.pauseMinting();
+          await OdysseyNFT.pause();
         
-          expect (await OdysseyNFT.mintingPaused()).to.be.true;
+          expect (await OdysseyNFT.paused()).to.be.true;
     
-          await OdysseyNFT.unpauseMinting();
+          await OdysseyNFT.unpause();
     
-          expect (await OdysseyNFT.mintingPaused()).to.be.false;
+          expect (await OdysseyNFT.paused()).to.be.false;
         });
       });
 
   describe('mintNFT', () => {
         it('should mint a new NFT', async () => {
-          const { OdysseyNFT, owner, addr1, mintPrice } = await loadFixture(deployContract);
+          const { OdysseyNFT, addr1, mintPrice } = await loadFixture(deployContract);
 
           const nftName = 'Odyssey #1';
           const nftDescription = 'The first Odyssey NFT';
@@ -90,7 +90,7 @@ describe("deploy contract", function() {
         });
 
         it("Should mint an NFT and set the correct token URI", async function () {
-          const { OdysseyNFT, addr1, owner } = await loadFixture(deployContract);
+          const { OdysseyNFT } = await loadFixture(deployContract);
 
           await OdysseyNFT.mintNFT({ value: ethers.utils.parseEther("1") });
           // const tokenId = await OdysseyNFT.tokenOfOwnerByIndex(owner.address, 0);
@@ -98,10 +98,10 @@ describe("deploy contract", function() {
         });
 
         it("Should not mint an NFT if minting is paused", async function () {
-          const { OdysseyNFT, addr1, owner } = await loadFixture(deployContract);
+          const { OdysseyNFT } = await loadFixture(deployContract);
 
-          await OdysseyNFT.pauseMinting();
-          await expect(OdysseyNFT.mintNFT({ value: ethers.utils.parseEther("1") })).to.be.revertedWith("Odyssey Minting is paused");
+          await OdysseyNFT.pause();
+          await expect(OdysseyNFT.mintNFT({ value: ethers.utils.parseEther("1") })).to.be.revertedWith("Pausable: paused");
         });
 
       });
@@ -116,13 +116,13 @@ describe("deploy contract", function() {
         });
           
       it("should not allow non-owner to transfer OdysseyNFT", async () => {
-        const { OdysseyNFT, addr1, addr2, owner } = await loadFixture(deployContract);
+        const { OdysseyNFT, addr1, addr2 } = await loadFixture(deployContract);
         await OdysseyNFT.connect(addr1).mintNFT({ value: mintPrice });
         expect (OdysseyNFT.transferOdyssey(await addr2.address, await addr1.address, 1)).to.be.revertedWith('ERC721: transfer caller is not owner nor approved');
       });
   
       it("should not allow transfer of non-existent OdysseyNFT", async () => {
-        const { OdysseyNFT, addr1, addr2, owner } = await loadFixture(deployContract);
+        const { OdysseyNFT, addr1, addr2 } = await loadFixture(deployContract);
         expect (OdysseyNFT.transferOdyssey(await addr1.address, await addr2.address, 2)).to.be.revertedWith("ERC721: invalid token ID");
       });
 

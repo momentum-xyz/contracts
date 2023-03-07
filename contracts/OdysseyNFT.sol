@@ -5,20 +5,20 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 
 
 /**
  * @title OdysseyNFT
  * @dev Contract to mint and modify odyssey NFTs
  */
-contract OdysseyNFT is ERC721URIStorage, Ownable {
+contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _odysseyIds;
 
     uint256 private _tokenIdCounter;
     uint256 private _maxTokens;
     uint256 private _mintPrice;
-    bool private _mintingPaused;
     string private _customBaseURI;
 
     // uint256 public mintPrice = 1 ether;
@@ -39,7 +39,6 @@ contract OdysseyNFT is ERC721URIStorage, Ownable {
     ) ERC721(name_, symbol_) {
          _maxTokens = maxOdysseySupply_;
         _mintPrice = mintPrice_;
-        _mintingPaused = false;
         _customBaseURI = customBaseURI;
 
     }
@@ -47,15 +46,15 @@ contract OdysseyNFT is ERC721URIStorage, Ownable {
     /**
     * @notice Pauses minting of new OdysseyNFT's
     */
-    function pauseMinting() public onlyOwner {
-        _mintingPaused = true;
+    function pause() public onlyOwner {
+        _pause();
     }
 
     /**
     * @notice Enables minting of new OdysseyNFT's
     */
-    function unpauseMinting() public onlyOwner {
-        _mintingPaused = false;
+    function unpause() public onlyOwner {
+        _unpause();
     }
 
     /**
@@ -89,21 +88,12 @@ contract OdysseyNFT is ERC721URIStorage, Ownable {
     function mintPrice() public view returns (uint256) {
         return _mintPrice;
     }
-
-    /**
-    * @notice Returns the state of miniting process 
-    * @return _mintingPaused
-    */
-    function mintingPaused() public view returns (bool) {
-        return _mintingPaused;
-    }
     
     /**
     * @notice Mints new OdysseyNFT for the user
     * @return tokenId OdysseyId minted by the user
     */
-    function mintNFT() public payable returns(uint256) {
-        require(!_mintingPaused, "Odyssey Minting is paused");
+    function mintNFT() public payable whenNotPaused returns(uint256) {
         require( _mintPrice == msg.value, "wrong amount sent");
         require(walletMints[msg.sender] < maxOdysseyPerWallet, "Odyssey mints per wallet exceeded");
         walletMints[msg.sender] += 1;
