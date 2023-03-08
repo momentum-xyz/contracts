@@ -93,14 +93,12 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @notice Mints new OdysseyNFT for the user
     * @return tokenId OdysseyId minted by the user
     */
-    function mintNFT() public payable whenNotPaused returns(uint256) {
-        require( _mintPrice == msg.value, "wrong amount sent");
-        require(walletMints[msg.sender] < maxOdysseyPerWallet, "Odyssey mints per wallet exceeded");
-        walletMints[msg.sender] += 1;
+    function safeMint(address to, uint256 tokenId) public whenNotPaused onlyOwner returns(uint256) {
+        require(walletMints[to] < maxOdysseyPerWallet, "Odyssey mints per wallet exceeded");
+        walletMints[to] += 1;
         _odysseyIds.increment();
-        uint256 tokenId = _odysseyIds.current();
         require(tokenId < maxTokens(), "Max Odyssey supply reached");
-        _safeMint(msg.sender, tokenId);
+        _safeMint(to, tokenId);
         _setTokenURI(tokenId);
         return tokenId;
     }
@@ -121,15 +119,15 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
 
     /**
     * @notice Sets the base URI of NFT folder in IPFS
-    * @param baseURI Accountid of OdysseyNFT owner
+    * @param baseURI IPFS baseURI
     */    
     function setbaseURI(string memory baseURI) public onlyOwner {
         _customBaseURI = baseURI;
     }
     
     /**
-    * @notice Returns the baseURI of the IPFS containing NFTs
-    * @return _customBaseURI Accountid of OdysseyNFT owner
+    * @notice Returns the baseURI of the IPFS folder containing NFTs
+    * @return _customBaseURI IPFS baseURI
     */ 
     function _baseURI() internal view virtual override returns(string memory) {
         return _customBaseURI;
@@ -137,7 +135,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
 
     /**
     * @notice Burns an OdysseyNFT
-    * @param tokenId tokenId of the OdysseyNFT
+    * @param tokenId tokenId of an OdysseyNFT
     */ 
       function burnToken(uint256 tokenId) public onlyOwner {
       _burn(tokenId);
