@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 /**
  * @title OdysseyNFT
@@ -108,14 +108,12 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @param from Accountid of OdysseyNFT owner
     * @param to Accountid of OdysseyNFT buyer    
     */
-    function transferOdyssey(address from, address to, uint256 tokenId)
-        public
-    {
+    function safeTransferFrom(address from, address to, uint256 tokenId) public virtual override {
+        require(!paused(), "Contract is paused");
         require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: transfer caller is not owner nor approved");
         require(to != address(0), "ERC721: transfer to the zero address");
-        safeTransferFrom(from, to, tokenId);
+        safeTransferFrom(from, to, tokenId, "");
     }
-
 
     /**
     * @notice Sets the base URI of NFT folder in IPFS

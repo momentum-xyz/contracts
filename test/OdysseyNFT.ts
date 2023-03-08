@@ -106,19 +106,20 @@ describe("deploy contract", function() {
           const { OdysseyNFT, addr1, owner } = await loadFixture(deployContract);
       
           await OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(owner.address, 1);
-          await OdysseyNFT.transferOdyssey(owner.address, addr1.address, 1);
+          // await OdysseyNFT.safeTransferFrom(owner.address, addr1.address, 1);
+          await OdysseyNFT["safeTransferFrom(address,address,uint256)"](owner.address, addr1.address, 1);
           expect(await OdysseyNFT.ownerOf(1)).to.equal(addr1.address);
         });
           
       it("should not allow non-owner to transfer OdysseyNFT", async () => {
         const { OdysseyNFT, owner, addr1, addr2 } = await loadFixture(deployContract);
         await OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr1.address, 1);
-        expect (OdysseyNFT.transferOdyssey(await addr2.address, await addr1.address, 1)).to.be.revertedWith('ERC721: transfer caller is not owner nor approved');
+        expect (OdysseyNFT["safeTransferFrom(address,address,uint256)"](owner.address, addr1.address, 1)).to.be.revertedWith('ERC721: transfer caller is not owner nor approved');
       });
   
       it("should not allow transfer of non-existent OdysseyNFT", async () => {
         const { OdysseyNFT, addr1, addr2 } = await loadFixture(deployContract);
-        expect (OdysseyNFT.transferOdyssey(await addr1.address, await addr2.address, 2)).to.be.revertedWith("ERC721: invalid token ID");
+        expect (OdysseyNFT["safeTransferFrom(address,address,uint256)"](addr1.address, addr2.address, 1)).to.be.revertedWith("ERC721: invalid token ID");
       });
 
       });
