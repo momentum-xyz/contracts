@@ -61,7 +61,7 @@ describe("MomToken", function () {
       await expect(momToken.mint(addr0.address, amount)).to.emit(momToken, "Transfer").withArgs(ethers.constants.AddressZero, addr0.address, amount);
     });
 
-    it("Should not pause and unpause contract if address doesn't have the Puaser role", async function () {
+    it("Should not pause and unpause contract if address doesn't have the Pauser role", async function () {
       const { momToken, owner, addr0 } = await loadFixture(deployMomTokenOneKSupply);
       const amount = 10;
       const pauserRole = await momToken.PAUSER_ROLE();
