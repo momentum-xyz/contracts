@@ -2,10 +2,7 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-
-function rolesRevertString(address: string, role: string): string {
-  return `AccessControl: account ${address.toLowerCase()} is missing role ${role.toLowerCase()}`
-}
+import { utils } from "./utils";
 
 describe("MomToken", function () {
   async function deployMomTokenOneKSupply() {
@@ -51,7 +48,7 @@ describe("MomToken", function () {
 
       await momToken.transfer(addr0.address, amount);
 
-      await expect(momToken.connect(addr0).burn(amount)).to.be.revertedWith(rolesRevertString(addr0.address, burnerRole));
+      await expect(momToken.connect(addr0).burn(amount)).to.be.revertedWith(utils.rolesRevertString(addr0.address, burnerRole));
       await expect(momToken.burn(amount)).to.emit(momToken, "Transfer").withArgs(owner.address, ethers.constants.AddressZero, amount);
     });
 
@@ -60,7 +57,7 @@ describe("MomToken", function () {
       const amount = 10;
       const minterRole = await momToken.MINTER_ROLE();
 
-      await expect(momToken.connect(addr0).mint(addr0.address, amount)).to.be.revertedWith(rolesRevertString(addr0.address, minterRole));
+      await expect(momToken.connect(addr0).mint(addr0.address, amount)).to.be.revertedWith(utils.rolesRevertString(addr0.address, minterRole));
       await expect(momToken.mint(addr0.address, amount)).to.emit(momToken, "Transfer").withArgs(ethers.constants.AddressZero, addr0.address, amount);
     });
 
@@ -69,10 +66,10 @@ describe("MomToken", function () {
       const amount = 10;
       const pauserRole = await momToken.PAUSER_ROLE();
 
-      await expect(momToken.connect(addr0).pause()).to.be.revertedWith(rolesRevertString(addr0.address, pauserRole));
+      await expect(momToken.connect(addr0).pause()).to.be.revertedWith(utils.rolesRevertString(addr0.address, pauserRole));
       await expect(momToken.pause()).to.emit(momToken, "Paused").withArgs(owner.address);
 
-      await expect(momToken.connect(addr0).unpause()).to.be.revertedWith(rolesRevertString(addr0.address, pauserRole));
+      await expect(momToken.connect(addr0).unpause()).to.be.revertedWith(utils.rolesRevertString(addr0.address, pauserRole));
       await expect(momToken.unpause()).to.emit(momToken, "Unpaused").withArgs(owner.address);
 
     });
