@@ -52,4 +52,27 @@ describe("Staking", function () {
     });
   });
 
+  describe("Unstake", function () {
+    it("should unstake MOM and update structures removing staker and staked_by", async function () {
+      const { staking, momToken, dadToken, owner, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const MOMTOKEN = 0;
+      const odyssey_id = 1;
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, MOMTOKEN);
+      await staking.total_staked();
+
+      expect(await staking.connect(addr0).unstake(odyssey_id, MOMTOKEN)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount);
+      expect(await staking.total_staked()).to.be.eq(0);
+      
+      const staker = await staking.stakers(addr0.address);
+      expect(staker.user).to.be.eq(ethers.constants.AddressZero);
+
+      const odyssey = await staking.odysseys(odyssey_id);
+      console.log(odyssey);
+      // expect(odyssey);
+    });
+  });
+
 });
