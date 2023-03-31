@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "hardhat/console.sol";
 
 contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
@@ -17,14 +18,15 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         address user;
         uint256 total_reward;
         uint256 total_staked;
-        mapping(Token => uint256) token_values;
-        mapping(uint256 => uint256) indexes;
-        mapping(uint256 => StakingAt[]) staking_at;
+        uint256 dad_amount;
+        uint256 mom_amount;
     }
 
     struct StakingAt {
         uint256 odyssey_id;
-        uint256 amount;
+        uint256 total_amount;
+        uint256 dad_amount;
+        uint256 mom_amount;
         uint256 since;
     }
 
@@ -32,13 +34,28 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         uint256 odyssey_id;
         uint256 total_staked_into;
         uint256 total_stakers;
-        mapping(uint256 => uint256) indexes;
-        mapping(uint256 => StakedBy[]) staked_by;
     }
 
     struct StakedBy {
         address user;
-        uint256 amount;
+        uint256 total_amount;
+        uint256 dad_amount;
+        uint256 mom_amount;
+        uint256 since;
+    }
+
+    struct StakingInfo {
+        address user;
+        uint256 odyssey_id;
+        uint256 total_amount;
+        uint256 dad_amount;
+        uint256 mom_amount;
+        uint256 since;
+    }
+
+    struct Unstaker {
+        uint256 dad_amount;
+        uint256 mom_amount;
         uint256 since;
     }
 
@@ -46,13 +63,20 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     address public dad_token;
     uint256 public total_staked;
 
-    mapping (address => Staker) internal stakers;
-    mapping (uint256 => Odyssey) internal odysseys;
+    mapping (address => Staker) public stakers;
+    mapping (uint256 => Odyssey) public odysseys;
 
     mapping (address => StakingAt[]) internal staking_at;
+    mapping (address => mapping(uint256 => uint256)) internal staking_at_indexes;
     mapping (uint256 => StakedBy[]) internal staked_by;
+    mapping (uint256 => mapping(address => uint256)) internal staked_by_indexes;
+    // mapping (uint256 => StakingInfo[]) staking_info;
+    // mapping (uint256 => uint256) staking_info_odyssey;
+
+    mapping (address => Unstaker[]) public unstakes;
 
     event Stake(address, uint256, uint256);
+    event Unstake(address, uint256, uint256);
 
     function initialize(address _mom_token, address _dad_token) initializer public {
         mom_token = _mom_token;
@@ -76,15 +100,17 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     }
 
-    function unstake(uint256 odyssey_id, uint256 amount, Token token) public {
-        _unstake(odyssey_id, amount, token);
+    function unstake(uint256 odyssey_id, Token token) public {
+        _unstake(odyssey_id, token);
     }
 
     function restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) public {
         _restake(from_odyssey_id, to_odyssey_id, amount, token);
     }
 
-    function claim_rewards() public {}
+    function claim_unstaked_tokens() public {
+        _claim_unstaked_token();
+    }
 
     function _calculate_rewards() private {}
 
@@ -97,20 +123,33 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
         Staker storage staker = stakers[msg.sender];
         Odyssey storage odyssey = odysseys[odyssey_id];
-
+        
         if(staker.user == address(0)) {
             staker.user = msg.sender;
         }
         staker.total_staked += amount;
-        staker.token_values[token] += amount;
         
+        token == Token.DAD ? staker.dad_amount += amount : staker.mom_amount += amount;
         total_staked += amount;
-
-        if(staker.indexes[odyssey_id] == 0) {
-            staker.indexes[odyssey_id] = staker.staking_at[0].length;
-            staker.staking_at[0].push(StakingAt(odyssey_id, amount, block.timestamp));
+        uint256 index = staking_at_indexes[msg.sender][odyssey_id];
+        if(staking_at[msg.sender].length == 0) {
+            staking_at[msg.sender].push();
+        }
+        if(index == 0) {
+            index = staking_at[msg.sender].length;
+            staking_at_indexes[msg.sender][odyssey_id] = index;
+            staking_at[msg.sender].push();
+            staking_at[msg.sender][index].odyssey_id = odyssey_id;
+            staking_at[msg.sender][index].total_amount = amount;
+            token == Token.DAD
+                    ? staking_at[msg.sender][index].dad_amount += amount
+                    : staking_at[msg.sender][index].mom_amount += amount;
+            staking_at[msg.sender][index].since = block.timestamp;
         } else {
-            staker.staking_at[0][staker.indexes[odyssey_id]].amount += amount;
+            staking_at[msg.sender][index].total_amount += amount;
+            token == Token.DAD
+                    ? staking_at[msg.sender][index].dad_amount += amount
+                    : staking_at[msg.sender][index].mom_amount += amount;
         }
 
         if(odyssey.odyssey_id == 0) {
@@ -119,22 +158,114 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         odyssey.total_stakers++;
         odyssey.total_staked_into += amount;
 
-        if(odyssey.indexes[odyssey_id] == 0) {
-            odyssey.indexes[odyssey_id] = odyssey.staked_by[0].length;
-            odyssey.staked_by[0].push(StakedBy(staker.user, amount, block.timestamp));
+        index = staked_by_indexes[odyssey_id][msg.sender];
+        if (staked_by[odyssey_id].length == 0) {
+            staked_by[odyssey_id].push();
+        }
+        if(index == 0) {
+            index = staked_by[odyssey_id].length;
+            staked_by_indexes[odyssey_id][msg.sender] = index;
+            staked_by[odyssey_id].push();
+            staked_by[odyssey_id][index].user = msg.sender;
+            staked_by[odyssey_id][index].total_amount = amount;
+            token == Token.DAD
+                    ?  staked_by[odyssey_id][index].dad_amount += amount
+                    :  staked_by[odyssey_id][index].mom_amount += amount;
+            staked_by[odyssey_id][index].since = block.timestamp;
+
         } else {
-            odyssey.staked_by[0][odyssey.indexes[odyssey_id]].amount += amount;
+            staked_by[odyssey_id][index].total_amount += amount;
+            token == Token.DAD
+                    ? staked_by[odyssey_id][index].dad_amount += amount
+                    : staked_by[odyssey_id][index].mom_amount += amount;
         }
 
-        emit Stake(staker.user, odyssey_id, amount);
+        emit Stake(msg.sender, odyssey_id, amount);
 
     }
 
-    function _unstake(uint256 odyssey_id, uint256 amount, Token token) private {
+    function _unstake(uint256 odyssey_id, Token token) private {
+        Staker storage staker = stakers[msg.sender];
+        Odyssey storage odyssey = odysseys[odyssey_id];
+
+        console.log("OI: %d", staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]].odyssey_id);
+        require(staker.user != address(0) && staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]].odyssey_id == odyssey.odyssey_id);
+        token == Token.DAD
+                    ? require(staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]].dad_amount > 0)
+                    : require(staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]].mom_amount > 0);
+
+        Unstaker[] storage unstaker = unstakes[msg.sender];
+        StakingAt storage _staking_at = staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]];
+        StakedBy storage _staked_by = staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]];
+        uint256 amount = token == Token.DAD
+                    ? _staking_at.dad_amount
+                    : _staking_at.mom_amount;
+        
+        if(staker.total_staked > amount) {
+            if(_staking_at.total_amount > amount) {
+                token == Token.DAD
+                    ? _staking_at.dad_amount = 0
+                    : _staking_at.mom_amount = 0;
+                _staking_at.total_amount -= 0;
+                staker.total_staked -= amount;
+    
+                if(_staked_by.total_amount > amount) {
+                    _staked_by.total_amount -= amount;
+                    token == Token.DAD
+                    ? _staked_by.dad_amount = 0
+                    : _staked_by.mom_amount = 0;
+                } else {
+                    staked_by_indexes[odyssey_id][staked_by[odyssey_id][staked_by[odyssey_id].length-1].user] = staked_by_indexes[odyssey_id][msg.sender];
+                    staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]] = staked_by[odyssey_id][staked_by[odyssey_id].length-1];
+                    staked_by[odyssey_id].pop();
+                }
+            } else {
+                staked_by_indexes[odyssey_id][staked_by[odyssey_id][staked_by[odyssey_id].length-1].user] = staked_by_indexes[odyssey_id][msg.sender];
+                staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]] = staked_by[odyssey_id][staked_by[odyssey_id].length-1];
+                staked_by[odyssey_id].pop();
+                
+                staking_at_indexes[msg.sender][staking_at[msg.sender][staking_at[msg.sender].length-1].odyssey_id] = staking_at_indexes[msg.sender][odyssey_id];
+                staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]] = staking_at[msg.sender][staking_at[msg.sender].length-1];
+                staking_at[msg.sender].pop();
+                
+                odysseys[odyssey_id].total_stakers--;
+                odysseys[odyssey_id].total_staked_into -= amount;
+            }
+        } else {
+            delete stakers[msg.sender];
+            
+            staked_by_indexes[odyssey_id][staked_by[odyssey_id][staked_by[odyssey_id].length-1].user] = staked_by_indexes[odyssey_id][msg.sender];
+            staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]] = staked_by[odyssey_id][staked_by[odyssey_id].length-1];
+            staked_by[odyssey_id].pop();
+            
+            staking_at_indexes[msg.sender][staking_at[msg.sender][staking_at[msg.sender].length-1].odyssey_id] = staking_at_indexes[msg.sender][odyssey_id];
+            staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]] = staking_at[msg.sender][staking_at[msg.sender].length-1];
+            staking_at[msg.sender].pop();
+            
+            odysseys[odyssey_id].total_stakers--;
+            odysseys[odyssey_id].total_staked_into -= amount;
+        }
+
+        total_staked -= amount;
+
+        unstaker.push();
+        token == Token.DAD
+                    ?  unstaker[unstaker.length-1].dad_amount += amount
+                    :  unstaker[unstaker.length-1].mom_amount += amount;
+        unstaker[unstaker.length-1].since = block.timestamp;
+
+        emit Unstake(msg.sender, odyssey_id, amount);
+    }
+
+    function delete_from(Staking) private {
+
+    }
+
+    function _restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) private {
         
     }
 
-    function _restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) private{
+    function _claim_unstaked_token() private {
 
     }
 
