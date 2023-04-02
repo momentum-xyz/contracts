@@ -75,7 +75,8 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     mapping (address => Unstaker[]) public unstakes;
 
-    event Stake(address, uint256, uint256);
+    event ClaimedUnstaked(address, uint256, uint256);
+    event Stake(address, uint256, uint256, Token);
     event Unstake(address, uint256, uint256);
 
     function initialize(address _mom_token, address _dad_token) initializer public {
@@ -180,7 +181,7 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
                     : staked_by[odyssey_id][index].mom_amount += amount;
         }
 
-        emit Stake(msg.sender, odyssey_id, amount);
+        emit Stake(msg.sender, odyssey_id, amount, token);
 
     }
 
@@ -188,7 +189,6 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         Staker storage staker = stakers[msg.sender];
         Odyssey storage odyssey = odysseys[odyssey_id];
 
-        console.log("OI: %d", staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]].odyssey_id);
         require(staker.user != address(0) && staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]].odyssey_id == odyssey.odyssey_id);
         token == Token.DAD
                     ? require(staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]].dad_amount > 0)
@@ -257,21 +257,45 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         emit Unstake(msg.sender, odyssey_id, amount);
     }
 
-    function delete_from(Staking) private {
-
-    }
-
     function _restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) private {
         
     }
 
     function _claim_unstaked_token() private {
+        require(unstakes[msg.sender].length > 0, "Nothing to claim");
 
+        uint256 moms_to_claim = 0;
+        uint256 dads_to_claim = 0;
+        bool deleted = false;
+        bool claim = false;
+
+        for (uint i = 0; i < unstakes[msg.sender].length; i++) {
+            if(deleted) {
+                i--;
+                deleted = false;
+            }
+            if((block.timestamp - unstakes[msg.sender][i].since) >= 7 days) {
+                moms_to_claim = moms_to_claim + unstakes[msg.sender][i].mom_amount;
+                dads_to_claim = dads_to_claim + unstakes[msg.sender][i].dad_amount;
+                unstakes[msg.sender][i] = unstakes[msg.sender][unstakes[msg.sender].length-1];
+                unstakes[msg.sender].pop();
+                deleted = true;
+                claim = true;
+            }
+        }
+        if(claim) {
+            if(moms_to_claim > 0) {
+                IERC20(mom_token).transfer(payable(msg.sender), moms_to_claim);
+            }
+            if(dads_to_claim > 0) {
+                IERC20(dad_token).transfer(payable(msg.sender), dads_to_claim);
+            }
+            emit ClaimedUnstaked(msg.sender, moms_to_claim, dads_to_claim);
+        } else {
+            revert("Nothing to claim");
+        }
     }
 
     function _generate_rewards() private {}
-
-    //  TODO: Do NOT forget about the function to change the STAKER/ODYSSEY in cases of
-    // Selling an Odyssey with stakers/rewards
 
 }
