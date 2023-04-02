@@ -128,4 +128,36 @@ describe("Staking", function () {
 
   });
 
+  describe("Rewards", function () {
+    it("should revert when no rewards to be claimed", async function () {
+      const { staking, momToken, dadToken, owner, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+
+      await expect(staking.connect(addr0).claim_rewards()).to.revertedWith("No rewards available");
+    });
+
+    it("should claim rewards when user have only Odyssey rewards", async function () {
+      const { staking, momToken, dadToken, owner, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+
+      await staking.updateRewards(addr0.address, amount);
+
+      expect(await staking.connect(addr0).claim_rewards()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, amount);
+    });
+
+    it("should claim rewards when user has staking with/without Odyssey rewards", async function () {
+      const { staking, momToken, dadToken, owner, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = 1;
+
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
+
+      await staking.updateRewards(addr0.address, amount);
+
+      expect(await staking.connect(addr0).claim_rewards()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, amount);
+    });
+  });
+
 });

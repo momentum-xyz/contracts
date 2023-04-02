@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
+import "../token/MomToken.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -18,7 +19,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
 
     struct Staker {
         address user;
-        uint256 total_reward;
+        uint256 total_rewards;
         uint256 total_staked;
         uint256 dad_amount;
         uint256 mom_amount;
@@ -72,12 +73,11 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     mapping (address => mapping(uint256 => uint256)) internal staking_at_indexes;
     mapping (uint256 => StakedBy[]) internal staked_by;
     mapping (uint256 => mapping(address => uint256)) internal staked_by_indexes;
-    // mapping (uint256 => StakingInfo[]) staking_info;
-    // mapping (uint256 => uint256) staking_info_odyssey;
 
     mapping (address => Unstaker[]) public unstakes;
 
     event ClaimedUnstaked(address, uint256, uint256);
+    event RewardsClaimed(address, uint256);
     event Stake(address, uint256, uint256, Token);
     event Unstake(address, uint256, uint256);
 
@@ -104,6 +104,14 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         dad_token = _dad_token;
     }
 
+    function updateRewards(address user, uint256 amount) public onlyRole(MANAGER_ROLE) {
+        Staker storage staker = stakers[user];
+        if(staker.user == address(0)) {
+            staker.user = user;
+        }
+        staker.total_rewards += amount; 
+    }
+
     function stake(uint256 odyssey_id, uint256 amount, Token token) public payable {
         _stake(odyssey_id, amount, token);
     }
@@ -118,6 +126,10 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
 
     function claim_unstaked_tokens() public {
         _claim_unstaked_token();
+    }
+
+    function claim_rewards() public {
+        _claim_rewards();
     }
 
     function _stake(uint256 odyssey_id, uint256 amount, Token token) private {
@@ -263,7 +275,6 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     function _restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) private {
-        
     }
 
     function _claim_unstaked_token() private {
@@ -299,5 +310,16 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         } else {
             revert("Nothing to claim");
         }
+    }
+
+    function _claim_rewards() private {
+        require(stakers[msg.sender].total_rewards > 0, "No rewards available");
+
+        uint256 amount = stakers[msg.sender].total_rewards;
+        stakers[msg.sender].total_rewards = 0;
+
+        MOMToken(mom_token).mint(payable(msg.sender), amount);
+
+        emit RewardsClaimed(msg.sender, amount);
     }
 }
