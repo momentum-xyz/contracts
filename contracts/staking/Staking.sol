@@ -2,12 +2,14 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "hardhat/console.sol";
 
-contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
+
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
     enum Token {
         MOM,
@@ -82,23 +84,28 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     function initialize(address _mom_token, address _dad_token) initializer public {
         mom_token = _mom_token;
         dad_token = _dad_token;
-        total_staked = 0;
-        __Ownable_init();
+        __AccessControl_init();
         __UUPSUpgradeable_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MANAGER_ROLE, msg.sender);
     }
 
     function _authorizeUpgrade(address newImplementation)
         internal
-        onlyOwner
+        onlyRole(DEFAULT_ADMIN_ROLE)
         override
     {}
 
-    function stake(uint256 odyssey_id, uint256 amount, Token token) public payable {
-        _stake(odyssey_id, amount, token);
+    function updateMomTokenContract(address _mom_token) public onlyRole(MANAGER_ROLE) {
+        mom_token = _mom_token;
     }
 
-    function _calculate_reward() private {
+    function updateDadTokenContract(address _dad_token) public onlyRole(MANAGER_ROLE) {
+        dad_token = _dad_token;
+    }
 
+    function stake(uint256 odyssey_id, uint256 amount, Token token) public payable {
+        _stake(odyssey_id, amount, token);
     }
 
     function unstake(uint256 odyssey_id, Token token) public {
@@ -112,8 +119,6 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     function claim_unstaked_tokens() public {
         _claim_unstaked_token();
     }
-
-    function _calculate_rewards() private {}
 
     function _stake(uint256 odyssey_id, uint256 amount, Token token) private {
         if(token == Token.DAD) {
@@ -295,7 +300,4 @@ contract Staking is Initializable, OwnableUpgradeable, UUPSUpgradeable {
             revert("Nothing to claim");
         }
     }
-
-    function _generate_rewards() private {}
-
 }
