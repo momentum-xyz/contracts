@@ -8,15 +8,28 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "hardhat/console.sol";
 
+/** 
+* @title Staking Contract
+* @author Odyssey
+* @notice The Momentum staking mechanism
+*/
 contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
-
+    /**
+     * @dev Manager Role that is able to update the contract structures
+     */
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
+    /**
+     * @dev Possible Tokens enum
+     */
     enum Token {
         MOM,
         DAD
     }
 
+     /**
+     * @dev Holds Staker info
+     */
     struct Staker {
         address user;
         uint256 total_rewards;
@@ -25,6 +38,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 mom_amount;
     }
 
+    /**
+     * @dev Holds the relation Staker -> Odyssey info
+     */
     struct StakingAt {
         uint256 odyssey_id;
         uint256 total_amount;
@@ -33,12 +49,18 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 since;
     }
 
+    /**
+     * @dev Holds the Odyssey info
+     */
     struct Odyssey {
         uint256 odyssey_id;
         uint256 total_staked_into;
         uint256 total_stakers;
     }
 
+    /**
+     * @dev Holds the relation Odyssey -> Staker info
+     */
     struct StakedBy {
         address user;
         uint256 total_amount;
@@ -47,15 +69,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 since;
     }
 
-    struct StakingInfo {
-        address user;
-        uint256 odyssey_id;
-        uint256 total_amount;
-        uint256 dad_amount;
-        uint256 mom_amount;
-        uint256 since;
-    }
-
+    /**
+     * @dev How much a staker should claim after the locking period
+     */
     struct Unstaker {
         uint256 dad_amount;
         uint256 mom_amount;
@@ -81,6 +97,11 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     event Stake(address, uint256, uint256, Token);
     event Unstake(address, uint256, uint256);
 
+    /**
+     * @dev Initializer of the contract, is called when deploying
+     * @param _mom_token MOM Token contract address
+     * @param _dad_token DAD Token contract address
+     */
     function initialize(address _mom_token, address _dad_token) initializer public {
         mom_token = _mom_token;
         dad_token = _dad_token;
@@ -112,26 +133,56 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         staker.total_rewards += amount; 
     }
 
+    /**
+     * @notice Stake operation
+     * @param odyssey_id Odyssey id to be staked on
+     * @param amount Amount to be staked in the Odyssey
+     * @param token Token that will be staked
+     */
     function stake(uint256 odyssey_id, uint256 amount, Token token) public payable {
         _stake(odyssey_id, amount, token);
     }
 
+    /**
+     * @notice Unstake operation
+     * @param odyssey_id Odyssey id that will be unstaked
+     * @param token token to be unstaked
+     */
     function unstake(uint256 odyssey_id, Token token) public {
         _unstake(odyssey_id, token);
     }
-
+    
+    /**
+     * @notice Restake operation
+     * @param from_odyssey_id Id of the odyssey that the amount will be unstaked
+     * @param to_odyssey_id Id of the odyssey that the amont will be staker
+     * @param amount Amount to be restaked
+     * @param token Token that will be restaked
+     */
     function restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) public {
         _restake(from_odyssey_id, to_odyssey_id, amount, token);
     }
 
+    /**
+     * @notice Transfer untaked tokens back to the user
+     */
     function claim_unstaked_tokens() public {
         _claim_unstaked_token();
     }
 
+    /**
+     * @notice Claim stake / Odyssey rewards
+     */
     function claim_rewards() public {
         _claim_rewards();
     }
 
+    /**
+     * @dev Stake the tokens into the Odyssey. If no staker or Odyssey exists, they will be created in the process.
+     * @param odyssey_id Odyssey id to be staked on
+     * @param amount Amount to be staked in the Odyssey
+     * @param token Token that will be staked 
+     */
     function _stake(uint256 odyssey_id, uint256 amount, Token token) private {
         if(token == Token.DAD) {
             require(IERC20(dad_token).transferFrom(payable(msg.sender), address(this), amount));
@@ -202,6 +253,11 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
 
     }
 
+    /**
+     * @dev Unstake the tokens from an Odyssey and update the unstakers map with the values.
+     * @param odyssey_id Odyssey id that will be unstaked
+     * @param token token to be unstaked
+     */
     function _unstake(uint256 odyssey_id, Token token) private {
         Staker storage staker = stakers[msg.sender];
         Odyssey storage odyssey = odysseys[odyssey_id];
@@ -274,9 +330,19 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         emit Unstake(msg.sender, odyssey_id, amount);
     }
 
+    /**
+     * @dev Restake the amount from one Odyssey into other. No Locking period for this operation.
+     * @param from_odyssey_id Id of the odyssey that the amount will be unstaked
+     * @param to_odyssey_id Id of the odyssey that the amont will be staker
+     * @param amount Amount to be restaked
+     * @param token Token that will be restaked
+     */
     function _restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) private {
     }
 
+    /**
+     * @dev Transfer the unstaked tokens to an user, only after the locking period
+     */
     function _claim_unstaked_token() private {
         require(unstakes[msg.sender].length > 0, "Nothing to claim");
 
@@ -312,6 +378,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         }
     }
 
+    /**
+     * @dev Mint new tokens as rewards for the user.
+     */
     function _claim_rewards() private {
         require(stakers[msg.sender].total_rewards > 0, "No rewards available");
 
