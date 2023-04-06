@@ -160,4 +160,65 @@ describe("Staking", function () {
     });
   });
 
+  describe("Restake", function () {
+    it("should revert when amount is 0", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const amount = 0;
+      const odyssey_id = 1;
+      const new_odyssey_id = 2;
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount, Token.MOM)).to.revertedWith("Amount cannot be 0");
+    });
+
+    it("should revert when user is not staking in that Odyssey", async function () {
+      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = 1;
+      const new_odyssey_id = 2;
+
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(new_odyssey_id, amount, Token.MOM);
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount, Token.MOM)).to.revertedWith("Not staking in that Odyssey");
+    });
+
+    it("should revert when user is not a staker", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = 1;
+      const new_odyssey_id = 2;
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount, Token.MOM)).to.revertedWith("Not a staker");
+    });
+
+    it("should revert when amount is greater than staked amount", async function () {
+      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = 1;
+      const new_odyssey_id = 2;
+
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount * 2 , Token.MOM)).to.revertedWith("Not enough staked");
+    });
+
+    it("should restake if there is enough tokens staked", async function () {
+      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = 1;
+      const new_odyssey_id = 2;
+
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount / 2 , Token.MOM)).to.emit(staking, "Restake")
+            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount / 2, Token.MOM);
+    });
+
+  });
+
 });
