@@ -118,20 +118,31 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         override
     {}
 
-    function updateMomTokenContract(address _mom_token) public onlyRole(MANAGER_ROLE) {
+    /**
+     * @dev Updates the MOM token contract
+     * @param _mom_token new address for the MOM token contract
+     */
+    function update_mom_token_contract(address _mom_token) public onlyRole(MANAGER_ROLE) {
         mom_token = _mom_token;
     }
 
-    function updateDadTokenContract(address _dad_token) public onlyRole(MANAGER_ROLE) {
+    /**
+     * @dev Updates the DAD token contract
+     * @param _dad_token new address for the DAD token contract
+     */
+    function update_dad_token_contract(address _dad_token) public onlyRole(MANAGER_ROLE) {
         dad_token = _dad_token;
     }
 
-    function updateRewards(address user, uint256 amount) public onlyRole(MANAGER_ROLE) {
-        Staker storage staker = stakers[user];
-        if(staker.user == address(0)) {
-            staker.user = user;
+    /**
+     * @dev Update the staking rewards of the users
+     * @param addresses list of addresses to update
+     * @param amounts amount that will be updated per user
+     */
+    function update_rewards(address[] memory addresses, uint256[] memory amounts) public onlyRole(MANAGER_ROLE) {
+        for(uint i = 0; i < addresses.length; i++) {
+            stakers[addresses[i]].total_rewards += amounts[i];
         }
-        staker.total_rewards += amount; 
     }
 
     /**
