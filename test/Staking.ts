@@ -140,7 +140,7 @@ describe("Staking", function () {
       const { staking, momToken, dadToken, owner, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
 
-      await staking.updateRewards(addr0.address, amount);
+      await staking.update_rewards([addr0.address], [amount]);
 
       expect(await staking.connect(addr0).claim_rewards()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, amount);
     });
@@ -154,7 +154,7 @@ describe("Staking", function () {
       await momToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
 
-      await staking.updateRewards(addr0.address, amount);
+      await staking.update_rewards([addr0.address], [amount]);
 
       expect(await staking.connect(addr0).claim_rewards()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, amount);
     });

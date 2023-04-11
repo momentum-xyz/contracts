@@ -82,6 +82,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     address public dad_token;
     uint256 public total_staked;
 
+    uint public locking_period;
+
     mapping (address => Staker) public stakers;
     mapping (uint256 => Odyssey) public odysseys;
 
@@ -103,9 +105,10 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param _mom_token MOM Token contract address
      * @param _dad_token DAD Token contract address
      */
-    function initialize(address _mom_token, address _dad_token) initializer public {
+    function initialize(address _mom_token, address _dad_token,) initializer public {
         mom_token = _mom_token;
         dad_token = _dad_token;
+        locking_period = 7 days;
         __AccessControl_init();
         __UUPSUpgradeable_init();
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -407,7 +410,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                 i--;
                 deleted = false;
             }
-            if((block.timestamp - unstakes[msg.sender][i].since) >= 7 days) {
+            if((block.timestamp - unstakes[msg.sender][i].since) >= locking_period) {
                 moms_to_claim = moms_to_claim + unstakes[msg.sender][i].mom_amount;
                 dads_to_claim = dads_to_claim + unstakes[msg.sender][i].dad_amount;
                 unstakes[msg.sender][i] = unstakes[msg.sender][unstakes[msg.sender].length-1];
