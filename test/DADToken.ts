@@ -63,32 +63,6 @@ describe("DADToken", function () {
 
     });
 
-    it("Should not be able to increase/decrease/approve allowance if address doesn't have the Transfer/Admin role", async function () {
-        const { dadToken, owner, addr0 } = await loadFixture(deployDadTokenOneKSupply);
-        const transferRole = await dadToken.TRANSFER_ROLE();
-        const mintAmount = 100;
-        const amount = 10;
-
-        await dadToken.mint(owner.address, mintAmount);
-        await dadToken.mint(addr0.address, mintAmount);
-
-        await expect(dadToken.connect(owner).approve(addr0.address, amount)).to.emit(dadToken, "Approval").withArgs(owner.address, addr0.address, amount);
-        // Amount * 2 expected here, since the event emits the total allowance.
-        await expect(dadToken.connect(owner).increaseAllowance(addr0.address, amount)).to.emit(dadToken, "Approval").withArgs(owner.address, addr0.address, amount*2);
-        await expect(dadToken.connect(owner).decreaseAllowance(addr0.address, amount)).to.emit(dadToken, "Approval").withArgs(owner.address, addr0.address, amount);
-
-        await expect(dadToken.connect(addr0).approve(owner.address, amount)).to.be.revertedWith(utils.rolesRevertString(addr0.address, transferRole));
-        await expect(dadToken.connect(addr0).increaseAllowance(owner.address, amount)).to.be.revertedWith(utils.rolesRevertString(addr0.address, transferRole));
-        await expect(dadToken.connect(addr0).decreaseAllowance(owner.address, amount)).to.be.revertedWith(utils.rolesRevertString(addr0.address, transferRole));
-
-        await dadToken.connect(owner).grantRole(transferRole, addr0.address);
-
-        await expect(dadToken.connect(addr0).approve(owner.address, amount)).to.emit(dadToken, "Approval").withArgs(addr0.address, owner.address, amount);
-        // Amount * 2 expected here, since the event emits the total allowance.
-        await expect(dadToken.connect(addr0).increaseAllowance(owner.address, amount)).to.emit(dadToken, "Approval").withArgs(addr0.address, owner.address, amount*2);
-        await expect(dadToken.connect(addr0).decreaseAllowance(owner.address, amount)).to.emit(dadToken, "Approval").withArgs(addr0.address, owner.address, amount);
-    });
-
     it("Should not be able to transfer if address doesn't have the Transfer/Admin role", async function () {
         const { dadToken, owner, addr0 } = await loadFixture(deployDadTokenOneKSupply);
         const transferRole = await dadToken.TRANSFER_ROLE();
@@ -101,13 +75,10 @@ describe("DADToken", function () {
 
         await expect(dadToken.connect(owner).transfer(addr0.address, amount)).to.emit(dadToken, "Transfer").withArgs(owner.address, addr0.address, amount);
 
-        await dadToken.connect(owner).grantRole(transferRole, addr0.address);
         await dadToken.connect(addr0).approve(owner.address, amount);
 
         await expect(dadToken.connect(owner).transferFrom(addr0.address, owner.address, amount)).to.emit(dadToken, "Transfer").withArgs(addr0.address, owner.address, amount);
         
-        await dadToken.connect(owner).revokeRole(transferRole, addr0.address);
-
         await expect(dadToken.connect(addr0).transfer(owner.address, amount)).to.be.revertedWith(utils.rolesRevertString(addr0.address, transferRole));
         await expect(dadToken.connect(addr0).transferFrom(owner.address, addr0.address, amount)).to.be.revertedWith(utils.rolesRevertString(addr0.address, transferRole));
 
