@@ -87,19 +87,5 @@ contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     function transfer(address to, uint256 amount) public virtual override onlyRole(TRANSFER_ROLE) returns (bool) {
         return super.transfer(to, amount);
     }
-
-    /// @dev Only adding the 'onlyRole' modifier
-    function approve(address spender, uint256 amount) public virtual override onlyRole(TRANSFER_ROLE) returns (bool) {
-        return super.approve(spender, amount);
-    }
-
-    /// @dev Only adding the 'onlyRole' modifier
-    function increaseAllowance(address spender, uint256 addedValue) public virtual override onlyRole(TRANSFER_ROLE) returns (bool) {
-        return super.increaseAllowance(spender, addedValue);
-    }
-
-    /// @dev Only adding the 'onlyRole' modifier
-    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual override onlyRole(TRANSFER_ROLE) returns (bool) {
-        return super.decreaseAllowance(spender, subtractedValue);
-    }
 }
+
