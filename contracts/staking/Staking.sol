@@ -405,21 +405,17 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
 
         uint256 moms_to_claim = 0;
         uint256 dads_to_claim = 0;
-        bool deleted = false;
         bool claim = false;
 
-        for (uint i = 0; i < unstakes[msg.sender].length; i++) {
-            if(deleted) {
-                i--;
-                deleted = false;
-            }
-            if((block.timestamp - unstakes[msg.sender][i].since) >= locking_period) {
-                moms_to_claim = moms_to_claim + unstakes[msg.sender][i].mom_amount;
-                dads_to_claim = dads_to_claim + unstakes[msg.sender][i].dad_amount;
-                unstakes[msg.sender][i] = unstakes[msg.sender][unstakes[msg.sender].length-1];
+        for (int i = 0; i < int(unstakes[msg.sender].length); i++) {
+            uint index = uint(i);
+            if((block.timestamp - unstakes[msg.sender][index].since) >= locking_period) {
+                moms_to_claim = moms_to_claim + unstakes[msg.sender][index].mom_amount;
+                dads_to_claim = dads_to_claim + unstakes[msg.sender][index].dad_amount;
+                unstakes[msg.sender][index] = unstakes[msg.sender][unstakes[msg.sender].length-1];
                 unstakes[msg.sender].pop();
-                deleted = true;
                 claim = true;
+                i--;
             }
         }
         if(claim) {
