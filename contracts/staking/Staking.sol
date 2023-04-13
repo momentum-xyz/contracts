@@ -98,7 +98,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     event Restake(address, bytes16, bytes16, uint256, Token);
     event RewardsClaimed(address, uint256);
     event Stake(address, bytes16, uint256, Token, uint256);
-    event Unstake(address, bytes16, uint256);
+    event Unstake(address, bytes16, uint256, Token);
 
     /**
      * @dev Initializer of the contract, is called when deploying
@@ -275,7 +275,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                     : staked_by[odyssey_id][index].mom_amount += amount;
         }
 
-        emit Stake(msg.sender, odyssey_id, amount, token, staker.total_staked);
+        emit Stake(msg.sender, odyssey_id, amount, token, staked_by[odyssey_id][index].total_amount);
 
     }
 
@@ -307,15 +307,10 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                     : _staking_at.mom_amount = 0;
                 _staking_at.total_amount -= amount;
                 staker.total_staked -= amount;
-    
-                if(_staked_by.total_amount > amount) {
-                    _staked_by.total_amount -= amount;
-                    token == Token.DAD
-                    ? _staked_by.dad_amount = 0
-                    : _staked_by.mom_amount = 0;
-                } else {
-                    remove_staked_by(odyssey_id, msg.sender);
-                }
+                _staked_by.total_amount -= amount;
+                token == Token.DAD
+                ? _staked_by.dad_amount = 0
+                : _staked_by.mom_amount = 0;
             } else {
                 remove_staked_by(odyssey_id, msg.sender);
                 remove_staking_at(odyssey_id, msg.sender);
@@ -334,7 +329,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                     :  unstaker[unstaker.length-1].mom_amount += amount;
         unstaker[unstaker.length-1].since = block.timestamp;
 
-        emit Unstake(msg.sender, odyssey_id, amount);
+        emit Unstake(msg.sender, odyssey_id, amount, token);
     }
 
     /**
