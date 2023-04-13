@@ -1,5 +1,4 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { Staking } from "../typechain-types";
@@ -44,7 +43,7 @@ describe("Staking", function () {
     it("should stake and update structures", async function () {
       const { staking, momToken, dadToken, owner, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
-      const odyssey_id = 0;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
       await momToken.mint(addr0.address, amount);
       await dadToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
@@ -57,7 +56,7 @@ describe("Staking", function () {
     it("should unstake MOM and update structures removing staker and staked_by", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
-      const odyssey_id = 1;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
       await momToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
@@ -75,7 +74,7 @@ describe("Staking", function () {
     it("should unstake MOM and claim unstaked tokens", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
-      const odyssey_id = 1;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
 
       await momToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
@@ -91,7 +90,7 @@ describe("Staking", function () {
     it("should claim only after 7 days", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
-      const odyssey_id = 1;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
 
       await momToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
@@ -111,7 +110,7 @@ describe("Staking", function () {
     it("should clear tokens to claim, after claiming tokens", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
-      const odyssey_id = 1;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
 
       await momToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
@@ -148,7 +147,7 @@ describe("Staking", function () {
     it("should claim rewards when user has staking with/without Odyssey rewards", async function () {
       const { staking, momToken, dadToken, owner, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
-      const odyssey_id = 1;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
 
       await momToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
@@ -164,8 +163,8 @@ describe("Staking", function () {
     it("should revert when amount is 0", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
       const amount = 0;
-      const odyssey_id = 1;
-      const new_odyssey_id = 2;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
 
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount, Token.MOM)).to.revertedWith("Amount cannot be 0");
     });
@@ -173,8 +172,8 @@ describe("Staking", function () {
     it("should revert when user is not staking in that Odyssey", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
-      const odyssey_id = 1;
-      const new_odyssey_id = 2;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
 
       await momToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
@@ -186,8 +185,8 @@ describe("Staking", function () {
     it("should revert when user is not a staker", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
-      const odyssey_id = 1;
-      const new_odyssey_id = 2;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
 
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount, Token.MOM)).to.revertedWith("Not a staker");
     });
@@ -195,8 +194,8 @@ describe("Staking", function () {
     it("should revert when amount is greater than staked amount", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
-      const odyssey_id = 1;
-      const new_odyssey_id = 2;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
 
       await momToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
@@ -208,8 +207,8 @@ describe("Staking", function () {
     it("should restake if there is enough tokens staked", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
-      const odyssey_id = 1;
-      const new_odyssey_id = 2;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
 
       await momToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
