@@ -2,7 +2,7 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { Staking } from "../typechain-types";
-import { Token } from "./utils";
+import { Token, utils } from "./utils";
 
 describe("Staking", function () {
   async function deployStaking() {
@@ -33,35 +33,92 @@ describe("Staking", function () {
 
   describe("Initialize", function () {
     it("should set the right token contract addresses on initialize", async function () {
-      const { staking, momToken, dadToken, owner, addr0 } = await loadFixture(deployStaking);
+      const { staking, momToken, dadToken } = await loadFixture(deployStaking);
+      
       expect(await staking.mom_token()).to.equal(momToken.address);
       expect(await staking.dad_token()).to.equal(dadToken.address);
     });
   });
 
   describe("Stake", function () {
-    it("should stake and update structures", async function () {
-      const { staking, momToken, dadToken, owner, addr0 } = await loadFixture(deployStaking);
+    it("should stake MOM and update structures, first time", async function () {
+      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
       const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      
       await momToken.mint(addr0.address, amount);
-      await dadToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
-      expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount);
+      
+      await expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount, Token.MOM, amount);
       expect(await staking.total_staked()).to.be.eq(amount);
+      expect(await momToken.balanceOf(addr0.address)).to.eq(0);
+    });
+
+    it("should stake MOM and update structures, not first time", async function () {
+      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      
+      await expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount, Token.MOM, amount);
+      expect(await staking.total_staked()).to.be.eq(amount);
+      expect(await momToken.balanceOf(addr0.address)).to.eq(0);
+
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      
+      await expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount, Token.MOM, amount*2);
+      expect(await staking.total_staked()).to.be.eq(amount*2);
+      expect(await momToken.balanceOf(addr0.address)).to.eq(0);
+    });
+
+    it("should stake DAD and update structures, first time", async function () {
+      const { staking, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      
+      await expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount, Token.DAD, amount);
+      expect(await staking.total_staked()).to.be.eq(amount);
+      expect(await dadToken.balanceOf(addr0.address)).to.eq(0);
+    });
+
+    it("should stake DAD and update structures, not first time", async function () {
+      const { staking, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      
+      await expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount, Token.DAD, amount);
+      expect(await staking.total_staked()).to.be.eq(amount);
+      expect(await dadToken.balanceOf(addr0.address)).to.eq(0);
+
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      
+      await expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount, Token.DAD, amount*2);
+      expect(await staking.total_staked()).to.be.eq(amount*2);
+      expect(await dadToken.balanceOf(addr0.address)).to.eq(0);
     });
   });
 
   describe("Unstake", function () {
-    it("should unstake MOM and update structures removing staker and staked_by", async function () {
+    it("should unstake MOM and update structures removing staker and staked_by, only MOM staked", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
       const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      
       await momToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
 
-      expect(await staking.connect(addr0).unstake(odyssey_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.MOM);
+      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.MOM);
       expect(await staking.total_staked()).to.be.eq(0);
       
       const staker = await staking.stakers(addr0.address);
@@ -71,15 +128,49 @@ describe("Staking", function () {
       expect(odyssey.total_stakers).to.be.eq(0);
     });
 
-    it("should unstake MOM and claim unstaked tokens", async function () {
-      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
+    it("should unstake MOM and update structures removing staker and staked_by, both MOM and DAD staked", async function () {
+      const { staking, momToken, dadToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
       const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
-
+      
       await momToken.mint(addr0.address, amount);
+      await dadToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
-      await staking.connect(addr0).unstake(odyssey_id, Token.MOM);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD);
+
+      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.MOM);
+      expect(await staking.total_staked()).to.be.not.eq(0);
+      
+      const staker = await staking.stakers(addr0.address);
+      expect(staker.user).to.be.not.eq(ethers.constants.AddressZero);
+
+      const odyssey = await staking.odysseys(odyssey_id);
+      expect(odyssey.total_stakers).to.be.not.eq(0);
+    });
+
+    it("should unstake MOM and update structures removing staker and staked_by, both MOM and DAD staked differently in more than one Odyssey", async function () {
+      const { staking, momToken, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_one_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const odyssey_two_id = "0xe276ba1dff024fd28fcff53b6d94589b";
+      
+      await momToken.mint(addr0.address, amount);
+      await dadToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_one_id, amount, Token.MOM);
+      await staking.connect(addr0).stake(odyssey_two_id, amount, Token.DAD);
+
+      await expect(await staking.connect(addr0).unstake(odyssey_one_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_one_id, amount, Token.MOM);
+      expect(await staking.total_staked()).to.be.not.eq(0);
+      
+      const staker = await staking.stakers(addr0.address);
+      expect(staker.user).to.be.not.eq(ethers.constants.AddressZero);
+
+      const odyssey = await staking.odysseys(odyssey_one_id);
+      expect(odyssey.total_stakers).to.be.eq(0);
     });
 
     it("should revert if there is no tokens to claim", async function () {
@@ -87,7 +178,7 @@ describe("Staking", function () {
       await expect(staking.connect(addr0).claim_unstaked_tokens()).to.be.revertedWith("Nothing to claim");
     });
     
-    it("should claim only after 7 days", async function () {
+    it("should claim MOM only after 7 days", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
       const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
@@ -101,13 +192,36 @@ describe("Staking", function () {
       
       await expect(staking.connect(addr0).claim_unstaked_tokens()).to.be.revertedWith("Nothing to claim");
       
-      time.increaseTo(now + time.duration.days(7));
+      await time.increaseTo(now + time.duration.days(7));
 
-      expect(await staking.connect(addr0).claim_unstaked_tokens()).to.emit(staking, "ClaimedUnstaked").withArgs(addr0.address, amount, 0);
+      await expect(await staking.connect(addr0).claim_unstaked_tokens()).to.emit(staking, "ClaimedUnstaked").withArgs(addr0.address, amount, 0);
       expect(await momToken.balanceOf(addr0.address)).to.be.eq(amount);
     });
 
-    it("should clear tokens to claim, after claiming tokens", async function () {
+    it("should claim all MOM in the list only after 7 days", async function () {
+      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 2000;
+      const odyssey_one_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const odyssey_two_id = "0xe276ba1dff024fd28fcff53b6d94589b";
+      
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_one_id, amount/2, Token.MOM);
+      await staking.connect(addr0).stake(odyssey_two_id, amount/2, Token.MOM);
+      await staking.connect(addr0).unstake(odyssey_one_id, Token.MOM);
+      await staking.connect(addr0).unstake(odyssey_two_id, Token.MOM);
+
+      const now = await time.latest();
+      
+      await expect(staking.connect(addr0).claim_unstaked_tokens()).to.be.revertedWith("Nothing to claim");
+      
+      await time.increaseTo(now + time.duration.days(7));
+
+      await expect(await staking.connect(addr0).claim_unstaked_tokens()).to.emit(staking, "ClaimedUnstaked").withArgs(addr0.address, amount, 0);
+      expect(await momToken.balanceOf(addr0.address)).to.be.eq(amount);
+    });
+
+    it("should clear MOM tokens to claim, after claiming tokens", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
       const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
@@ -119,29 +233,153 @@ describe("Staking", function () {
 
       const now = await time.latest();
 
-      time.increaseTo(now + time.duration.days(7));
+      await time.increaseTo(now + time.duration.days(7));
 
-      expect(await staking.connect(addr0).claim_unstaked_tokens()).to.emit(staking, "ClaimedUnstaked").withArgs(addr0.address, amount, 0);
+      await expect(await staking.connect(addr0).claim_unstaked_tokens()).to.emit(staking, "ClaimedUnstaked").withArgs(addr0.address, amount, 0);
       expect(await momToken.balanceOf(addr0.address)).to.be.eq(amount);
     });
 
+    it("should unstake DAD and update structures removing staker and staked_by, only DAD staked, one Odyssey", async function () {
+      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
+
+      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.MOM);
+      expect(await staking.total_staked()).to.be.eq(0);
+      
+      const staker = await staking.stakers(addr0.address);
+      expect(staker.user).to.be.eq(ethers.constants.AddressZero);
+
+      const odyssey = await staking.odysseys(odyssey_id);
+      expect(odyssey.total_stakers).to.be.eq(0);
+    });
+
+    it("should unstake DAD and update structures removing staker and staked_by, both MOM and DAD staked equally in more than one Odyssey", async function () {
+      const { staking, momToken, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 2000;
+      const odyssey_one_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const odyssey_two_id = "0xe276ba1dff024fd28fcff53b6d94589b";
+      
+      await momToken.mint(addr0.address, amount);
+      await dadToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_one_id, amount/2, Token.MOM);
+      await staking.connect(addr0).stake(odyssey_one_id, amount/2, Token.DAD);
+      await staking.connect(addr0).stake(odyssey_two_id, amount/2, Token.MOM);
+      await staking.connect(addr0).stake(odyssey_two_id, amount/2, Token.DAD);
+
+      await expect(await staking.connect(addr0).unstake(odyssey_one_id, Token.DAD)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_one_id, amount/2, Token.DAD);
+      expect(await staking.total_staked()).to.be.not.eq(0);
+      
+      const staker = await staking.stakers(addr0.address);
+      expect(staker.user).to.be.not.eq(ethers.constants.AddressZero);
+
+      const odyssey = await staking.odysseys(odyssey_one_id);
+      expect(odyssey.total_stakers).to.be.not.eq(0);
+    });
+
+    it("should unstake DAD and update structures removing staker and staked_by, both MOM and DAD staked differently in more than one Odyssey", async function () {
+      const { staking, momToken, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_one_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const odyssey_two_id = "0xe276ba1dff024fd28fcff53b6d94589b";
+      
+      await momToken.mint(addr0.address, amount);
+      await dadToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_one_id, amount, Token.MOM);
+      await staking.connect(addr0).stake(odyssey_two_id, amount, Token.DAD);
+
+      await expect(await staking.connect(addr0).unstake(odyssey_two_id, Token.DAD)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_two_id, amount, Token.DAD);
+      expect(await staking.total_staked()).to.be.not.eq(0);
+      
+      const staker = await staking.stakers(addr0.address);
+      expect(staker.user).to.be.not.eq(ethers.constants.AddressZero);
+
+      const odyssey = await staking.odysseys(odyssey_two_id);
+      expect(odyssey.total_stakers).to.be.eq(0);
+    });
+
+    it("should unstake DAD and update structures removing staker and staked_by, both MOM and DAD staked, one Odyssey", async function () {
+      const { staking, momToken, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      
+      await momToken.mint(addr0.address, amount);
+      await dadToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD);
+
+      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.DAD)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.DAD);
+      expect(await staking.total_staked()).to.be.not.eq(0);
+      
+      const staker = await staking.stakers(addr0.address);
+      expect(staker.user).to.be.not.eq(ethers.constants.AddressZero);
+
+      const odyssey = await staking.odysseys(odyssey_id);
+      expect(odyssey.total_stakers).to.be.not.eq(0);
+    });
+
+    it("should claim DAD only after 7 days", async function () {
+      const { staking, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD);
+      await staking.connect(addr0).unstake(odyssey_id, Token.DAD);
+
+      const now = await time.latest();
+      
+      await expect(staking.connect(addr0).claim_unstaked_tokens()).to.be.revertedWith("Nothing to claim");
+      
+      await time.increaseTo(now + time.duration.days(7));
+
+      await expect(await staking.connect(addr0).claim_unstaked_tokens()).to.emit(staking, "ClaimedUnstaked").withArgs(addr0.address, 0, amount);
+      expect(await dadToken.balanceOf(addr0.address)).to.be.eq(amount);
+    });
+
+    it("should clear DAD tokens to claim, after claiming tokens", async function () {
+      const { staking, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD);
+      await staking.connect(addr0).unstake(odyssey_id, Token.DAD);
+
+      const now = await time.latest();
+
+      await time.increaseTo(now + time.duration.days(7));
+
+      await expect(await staking.connect(addr0).claim_unstaked_tokens()).to.emit(staking, "ClaimedUnstaked").withArgs(addr0.address, 0, amount);
+      expect(await dadToken.balanceOf(addr0.address)).to.be.eq(amount);
+    });
   });
 
   describe("Rewards", function () {
     it("should revert when no rewards to be claimed", async function () {
-      const { staking, momToken, dadToken, owner, addr0 } = await loadFixture(deployStaking);
-      const amount = 1000;
+      const { staking, addr0 } = await loadFixture(deployStaking);
 
       await expect(staking.connect(addr0).claim_rewards()).to.revertedWith("No rewards available");
     });
 
     it("should claim rewards when user have only Odyssey rewards", async function () {
-      const { staking, momToken, dadToken, owner, addr0 } = await loadFixture(deployStaking);
+      const { staking, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
 
       await staking.update_rewards([addr0.address], [amount]);
 
-      expect(await staking.connect(addr0).claim_rewards()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, amount);
+      await expect(await staking.connect(addr0).claim_rewards()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, amount);
     });
 
     it("should claim rewards when user has staking with/without Odyssey rewards", async function () {
@@ -155,12 +393,12 @@ describe("Staking", function () {
 
       await staking.update_rewards([addr0.address], [amount]);
 
-      expect(await staking.connect(addr0).claim_rewards()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, amount);
+      await expect(await staking.connect(addr0).claim_rewards()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, amount);
     });
   });
 
   describe("Restake", function () {
-    it("should revert when amount is 0", async function () {
+    it("should revert when amount is 0 MOM", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
       const amount = 0;
       const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
@@ -169,7 +407,7 @@ describe("Staking", function () {
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount, Token.MOM)).to.revertedWith("Amount cannot be 0");
     });
 
-    it("should revert when user is not staking in that Odyssey", async function () {
+    it("should revert when user is not staking MOM in that Odyssey", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
       const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
@@ -182,7 +420,7 @@ describe("Staking", function () {
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount, Token.MOM)).to.revertedWith("Not staking in that Odyssey");
     });
 
-    it("should revert when user is not a staker", async function () {
+    it("should revert when user is not a MOM staker", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
       const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
@@ -191,7 +429,7 @@ describe("Staking", function () {
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount, Token.MOM)).to.revertedWith("Not a staker");
     });
 
-    it("should revert when amount is greater than staked amount", async function () {
+    it("should revert when amount of MOM is greater than staked amount", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
       const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
@@ -204,7 +442,7 @@ describe("Staking", function () {
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount * 2 , Token.MOM)).to.revertedWith("Not enough staked");
     });
 
-    it("should restake if there is enough tokens staked", async function () {
+    it("should restake if there is enough MOM tokens staked", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
       const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
@@ -218,6 +456,146 @@ describe("Staking", function () {
             .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount / 2, Token.MOM);
     });
 
+    it("should restake, even if it is the total amount of MOM", async function () {
+      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
+
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount , Token.MOM)).to.emit(staking, "Restake")
+            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount, Token.MOM);
+    });
+
+    it("should revert when amount is 0 DAD", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const amount = 0;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount, Token.DAD)).to.revertedWith("Amount cannot be 0");
+    });
+
+    it("should revert when user is not staking DAD in that Odyssey", async function () {
+      const { staking, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
+
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(new_odyssey_id, amount, Token.DAD);
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount, Token.DAD)).to.revertedWith("Not staking in that Odyssey");
+    });
+
+    it("should revert when user is not a DAD staker", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount, Token.DAD)).to.revertedWith("Not a staker");
+    });
+
+    it("should revert when amount of DAD is greater than staked amount", async function () {
+      const { staking, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
+
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD);
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount * 2 , Token.DAD)).to.revertedWith("Not enough staked");
+    });
+
+    it("should restake if there is enough DAD tokens staked", async function () {
+      const { staking, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
+
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD);
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount / 2 , Token.DAD)).to.emit(staking, "Restake")
+            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount / 2, Token.DAD);
+    });
+
+    it("should restake, even if it is the total amount of DAD", async function () {
+      const { staking, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
+
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD);
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount , Token.DAD)).to.emit(staking, "Restake")
+            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount, Token.DAD);
+    });
   });
 
+  describe("Utilities", function () {
+    it("should update MOM token contract if manager", async function () {
+      const { staking, owner } = await loadFixture(deployStaking);
+
+      expect(await staking.connect(owner).mom_token()).not.eq(ethers.constants.AddressZero);
+
+      staking.connect(owner).update_mom_token_contract(ethers.constants.AddressZero)
+      
+      expect(await staking.connect(owner).mom_token()).eq(ethers.constants.AddressZero);
+    });
+
+    it("should revert update MOM token contract if not manager", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const manager_role = await staking.MANAGER_ROLE();
+      expect(await staking.connect(addr0).mom_token()).not.eq(ethers.constants.AddressZero);
+
+      await expect(staking.connect(addr0).update_mom_token_contract(ethers.constants.AddressZero)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
+    });
+    
+    it("should update DAD token contract if manager", async function () {
+      const { staking, owner } = await loadFixture(deployStaking);
+      
+      expect(await staking.connect(owner).dad_token()).not.eq(ethers.constants.AddressZero);
+      
+      staking.connect(owner).update_dad_token_contract(ethers.constants.AddressZero)
+      
+      expect(await staking.connect(owner).dad_token()).eq(ethers.constants.AddressZero);
+    });
+    
+    it("should revert update DAD token contract if not manager", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const manager_role = await staking.MANAGER_ROLE();
+      expect(await staking.connect(addr0).dad_token()).not.eq(ethers.constants.AddressZero);
+      
+      await expect(staking.connect(addr0).update_dad_token_contract(ethers.constants.AddressZero)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
+    });
+    
+    it("should update Locking Period if manager", async function () {
+      const { staking, owner } = await loadFixture(deployStaking);
+      
+      expect(await staking.connect(owner).locking_period()).not.eq(ethers.constants.AddressZero);
+      
+      staking.connect(owner).update_locking_period(ethers.constants.AddressZero)
+      
+      expect(await staking.connect(owner).locking_period()).eq(ethers.constants.AddressZero);
+    });
+    
+    it("should revert update Locking Period if not manager", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const manager_role = await staking.MANAGER_ROLE();
+      expect(await staking.connect(addr0).locking_period()).not.eq(ethers.constants.AddressZero);
+      
+      await expect(staking.connect(addr0).update_locking_period(ethers.constants.AddressZero)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
+    });
+  });
 });
