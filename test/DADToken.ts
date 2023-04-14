@@ -42,13 +42,15 @@ describe("DADToken", function () {
       await dadToken.mint(addr0.address, 100);
 
       await expect(dadToken.burn(amount)).to.emit(dadToken, "Transfer").withArgs(owner.address, ethers.constants.AddressZero, amount);
-
+      await dadToken.connect(addr0).approve(owner.address, amount);
+      await expect(dadToken.burnFrom(addr0.address, amount)).to.emit(dadToken, "Transfer").withArgs(addr0.address, ethers.constants.AddressZero, amount);
       await expect(dadToken.connect(addr0).burn(amount)).to.emit(dadToken, "Transfer").to.be.revertedWith(utils.rolesRevertString(addr0.address, burnerRole));
-
 
       await dadToken.grantRole(burnerRole, addr0.address);
 
       await expect(dadToken.connect(addr0).burn(amount)).to.emit(dadToken, "Transfer").withArgs(addr0.address, ethers.constants.AddressZero, amount);
+      await dadToken.connect(owner).approve(addr0.address, amount);
+      await expect(dadToken.connect(addr0).burnFrom(owner.address, amount)).to.emit(dadToken, "Transfer").withArgs(owner.address, ethers.constants.AddressZero, amount);
     });
 
     it("Should not pause and unpause contract if address doesn't have the Admin role", async function () {
@@ -60,7 +62,6 @@ describe("DADToken", function () {
 
       await expect(dadToken.connect(addr0).unpause()).to.be.revertedWith(utils.rolesRevertString(addr0.address, pauserRole));
       await expect(dadToken.unpause()).to.emit(dadToken, "Unpaused").withArgs(owner.address);
-
     });
 
     it("Should not be able to transfer if address doesn't have the Transfer/Admin role", async function () {
