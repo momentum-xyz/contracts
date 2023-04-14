@@ -43,13 +43,15 @@ describe("MomToken", function () {
     it("Should not burn or burnFrom tokens if address doesn't have the Burner role", async function () {
       const { momToken, owner, addr0 } = await loadFixture(deployMomTokenOneKSupply);
       const amount = 10;
-      // Lower case to match the revert message
       const burnerRole = await momToken.BURNER_ROLE();
 
       await momToken.transfer(addr0.address, amount);
 
-      await expect(momToken.connect(addr0).burn(amount)).to.be.revertedWith(utils.rolesRevertString(addr0.address, burnerRole));
-      await expect(momToken.burn(amount)).to.emit(momToken, "Transfer").withArgs(owner.address, ethers.constants.AddressZero, amount);
+      await expect(momToken.connect(addr0).burn(amount/2)).to.be.revertedWith(utils.rolesRevertString(addr0.address, burnerRole));
+      await expect(momToken.connect(addr0).burnFrom(addr0.address, amount/2)).to.be.revertedWith(utils.rolesRevertString(addr0.address, burnerRole));
+      await expect(momToken.burn(amount/2)).to.emit(momToken, "Transfer").withArgs(owner.address, ethers.constants.AddressZero, amount/2);
+      await momToken.connect(addr0).approve(owner.address, amount/2);
+      await expect(momToken.burnFrom(addr0.address, amount/2)).to.emit(momToken, "Transfer").withArgs(addr0.address, ethers.constants.AddressZero, amount/2);
     });
 
     it("Should not mint tokens if address doesn't have the Minter role", async function () {
