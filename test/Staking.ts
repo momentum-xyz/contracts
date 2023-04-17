@@ -460,7 +460,7 @@ describe("Staking", function () {
       await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
 
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount / 2 , Token.MOM)).to.emit(staking, "Restake")
-            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount / 2, Token.MOM);
+            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount / 2, Token.MOM, amount / 2, amount / 2);
     });
 
     it("should restake, even if it is the total amount of MOM", async function () {
@@ -474,7 +474,22 @@ describe("Staking", function () {
       await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
 
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount , Token.MOM)).to.emit(staking, "Restake")
-            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount, Token.MOM);
+            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount, Token.MOM, 0, amount);
+    });
+
+    it("should restake MOM on already staked Odyssey", async function () {
+      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
+
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount/2, Token.MOM);
+      await staking.connect(addr0).stake(new_odyssey_id, amount/2, Token.MOM);
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount/2 , Token.MOM)).to.emit(staking, "Restake")
+            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount/2, Token.MOM, 0, amount);
     });
 
     it("should revert when amount is 0 DAD", async function () {
@@ -532,7 +547,7 @@ describe("Staking", function () {
       await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD);
 
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount / 2 , Token.DAD)).to.emit(staking, "Restake")
-            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount / 2, Token.DAD);
+            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount / 2, Token.DAD, amount / 2, amount / 2);
     });
 
     it("should restake, even if it is the total amount of DAD", async function () {
@@ -546,7 +561,7 @@ describe("Staking", function () {
       await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD);
 
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount , Token.DAD)).to.emit(staking, "Restake")
-            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount, Token.DAD);
+            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount, Token.DAD, 0, amount);
     });
 
     it("should restake DAD on already staked Odyssey", async function () {
@@ -561,7 +576,7 @@ describe("Staking", function () {
       await staking.connect(addr0).stake(new_odyssey_id, amount/2, Token.DAD);
 
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount/2 , Token.DAD)).to.emit(staking, "Restake")
-            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount/2, Token.DAD);
+            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount/2, Token.DAD, 0, amount);
     });
   });
 

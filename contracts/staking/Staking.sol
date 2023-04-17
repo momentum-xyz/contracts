@@ -99,7 +99,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     mapping (address => Unstaker[]) public unstakes;
 
     event ClaimedUnstaked(address, uint256, uint256);
-    event Restake(address, bytes16, bytes16, uint256, Token);
+    event Restake(address, bytes16, bytes16, uint256, Token, uint256, uint256);
     event RewardsClaimed(address, uint256);
     event Stake(address, bytes16, uint256, Token, uint256);
     event Unstake(address, bytes16, uint256, Token);
@@ -394,6 +394,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
 
         uint current_timestamp = block.timestamp;
         uint effective_timestamp;
+        uint256 total_staked_from = 0;
         
         if (token == Token.DAD) {
             require(staking_at_from.dad_amount >= amount, "Not enough staked");
@@ -419,6 +420,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             staked_by_from.total_amount -= amount;
             staked_by_from.timestamp = current_timestamp;
             staked_by_from.effective_timestamp = effective_timestamp;
+            total_staked_from = staked_by_from.total_amount;
         }
 
         uint256 index_to = staking_at_indexes[msg.sender][to_odyssey_id];
@@ -456,8 +458,15 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                 : staked_by[to_odyssey_id][index_to].mom_amount += amount;
         staked_by[to_odyssey_id][index_to].timestamp = current_timestamp;
         staked_by[to_odyssey_id][index_to].effective_timestamp = effective_timestamp;
+        uint256 total_staked_to = staked_by[to_odyssey_id][index_to].total_amount;
         
-        emit Restake(msg.sender, from_odyssey_id, to_odyssey_id, amount, token);
+        emit Restake(msg.sender,
+                    from_odyssey_id,
+                    to_odyssey_id,
+                    amount,
+                    token,
+                    total_staked_from,
+                    total_staked_to);
     }
 
     /**
