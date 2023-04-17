@@ -46,7 +46,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 total_amount;
         uint256 dad_amount;
         uint256 mom_amount;
-        uint256 since;
+        uint256 timestamp;
+        uint256 effective_timestamp;
     }
 
     /**
@@ -66,7 +67,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 total_amount;
         uint256 dad_amount;
         uint256 mom_amount;
-        uint256 since;
+        uint256 timestamp;
+        uint256 effective_timestamp;
     }
 
     /**
@@ -75,7 +77,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     struct Unstaker {
         uint256 dad_amount;
         uint256 mom_amount;
-        uint256 since;
+        uint256 untaking_timestamp;
     }
 
     address public mom_token;
@@ -83,6 +85,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     uint256 public total_staked;
 
     uint public locking_period;
+    uint public rewards_timeout;
+    uint public last_rewards_calculation;
 
     mapping (address => Staker) public stakers;
     mapping (bytes16 => Odyssey) public odysseys;
@@ -109,6 +113,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         mom_token = _mom_token;
         dad_token = _dad_token;
         locking_period = 7 days;
+        rewards_timeout = 3 minutes;
         __AccessControl_init();
         __UUPSUpgradeable_init();
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -142,10 +147,16 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param addresses list of addresses to update
      * @param amounts amount that will be updated per user
      */
-    function update_rewards(address[] memory addresses, uint256[] memory amounts) public onlyRole(MANAGER_ROLE) {
+    function update_rewards(address[] memory addresses, uint256[] memory amounts, uint timestamp ) public onlyRole(MANAGER_ROLE) {
+        if(block.timestamp - timestamp > rewards_timeout) {
+            revert("Timeout");
+        }
+
         for(uint i = 0; i < addresses.length; i++) {
             stakers[addresses[i]].total_rewards += amounts[i];
         }
+
+        last_rewards_calculation = block.timestamp;
     }
 
     /**
@@ -154,6 +165,14 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      */
     function update_locking_period(uint _locking_period) public onlyRole(MANAGER_ROLE) {
         locking_period = _locking_period;
+    }
+
+    /**
+     * @dev Update the rewards_timeout to update calculated rewards
+     * @param _rewards_timeout new rewards_timeout
+     */
+    function update_rewards_timeout(uint _rewards_timeout) public onlyRole(MANAGER_ROLE) {
+        rewards_timeout = _rewards_timeout;
     }
 
     /**
@@ -236,12 +255,19 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             token == Token.DAD
                     ? staking_at[msg.sender][index].dad_amount += amount
                     : staking_at[msg.sender][index].mom_amount += amount;
-            staking_at[msg.sender][index].since = block.timestamp;
+            staking_at[msg.sender][index].timestamp = block.timestamp;
+            staking_at[msg.sender][index].effective_timestamp = block.timestamp;
         } else {
+            staking_at[msg.sender][index].effective_timestamp =
+                    calculate_effective_timestamp(staking_at[msg.sender][index].timestamp,
+                        staking_at[msg.sender][index].total_amount,
+                        amount,
+                            true);
             staking_at[msg.sender][index].total_amount += amount;
             token == Token.DAD
                     ? staking_at[msg.sender][index].dad_amount += amount
                     : staking_at[msg.sender][index].mom_amount += amount;
+            staking_at[msg.sender][index].timestamp = block.timestamp;
         }
 
         // First staker on the odyssey
@@ -266,13 +292,20 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             token == Token.DAD
                     ?  staked_by[odyssey_id][index].dad_amount += amount
                     :  staked_by[odyssey_id][index].mom_amount += amount;
-            staked_by[odyssey_id][index].since = block.timestamp;
+            staked_by[odyssey_id][index].timestamp = block.timestamp;
+            staked_by[odyssey_id][index].effective_timestamp = block.timestamp;
 
         } else {
+            staked_by[odyssey_id][index].effective_timestamp = 
+                    calculate_effective_timestamp(staked_by[odyssey_id][index].timestamp,
+                        staked_by[odyssey_id][index].total_amount,
+                        amount,
+                        true);
             staked_by[odyssey_id][index].total_amount += amount;
             token == Token.DAD
                     ? staked_by[odyssey_id][index].dad_amount += amount
                     : staked_by[odyssey_id][index].mom_amount += amount;
+            staked_by[odyssey_id][index].timestamp = block.timestamp;
         }
 
         emit Stake(msg.sender, odyssey_id, amount, token, staked_by[odyssey_id][index].total_amount);
@@ -302,6 +335,10 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         
         if(staker.total_staked > amount) {
             if(_staking_at.total_amount > amount) {
+                uint effective_timestamp = calculate_effective_timestamp(_staked_by.timestamp,
+                        _staked_by.total_amount,
+                        amount,
+                        false);
                 token == Token.DAD
                     ? _staking_at.dad_amount = 0
                     : _staking_at.mom_amount = 0;
@@ -309,13 +346,21 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                 staker.total_staked -= amount;
                 _staked_by.total_amount -= amount;
                 token == Token.DAD
-                ? _staked_by.dad_amount = 0
-                : _staked_by.mom_amount = 0;
+                    ? _staked_by.dad_amount = 0
+                    : _staked_by.mom_amount = 0;
+                _staking_at.effective_timestamp = effective_timestamp;
+                _staking_at.timestamp = block.timestamp;
+                _staked_by.effective_timestamp = effective_timestamp;
+                _staked_by.timestamp = block.timestamp;
             } else {
                 remove_staked_by(odyssey_id, msg.sender);
                 remove_staking_at(odyssey_id, msg.sender);
                 decrease_odyssey_total_stakers(odyssey_id, amount);
             }
+            token == Token.DAD
+                    ? staker.dad_amount = 0
+                    : staker.mom_amount = 0;
+            staker.total_staked -= amount;
         } else {
             delete stakers[msg.sender];
             remove_staked_by(odyssey_id, msg.sender);
@@ -327,7 +372,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         token == Token.DAD
                     ?  unstaker[unstaker.length-1].dad_amount += amount
                     :  unstaker[unstaker.length-1].mom_amount += amount;
-        unstaker[unstaker.length-1].since = block.timestamp;
+        unstaker[unstaker.length-1].untaking_timestamp = block.timestamp;
 
         emit Unstake(msg.sender, odyssey_id, amount, token);
     }
@@ -347,7 +392,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         StakingAt storage staking_at_from = staking_at[msg.sender][staking_at_indexes[msg.sender][from_odyssey_id]];
         StakedBy storage staked_by_from = staked_by[from_odyssey_id][staked_by_indexes[from_odyssey_id][msg.sender]];
 
-        uint256 index_to = staking_at_indexes[msg.sender][to_odyssey_id];
+        uint current_timestamp = block.timestamp;
+        uint effective_timestamp;
         
         if (token == Token.DAD) {
             require(staking_at_from.dad_amount >= amount, "Not enough staked");
@@ -358,29 +404,45 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             staking_at_from.mom_amount -= amount;
             staked_by_from.mom_amount -= amount;
         }
-        staking_at_from.total_amount -= amount;
-        staked_by_from.total_amount -= amount;
 
-        if(staking_at_from.total_amount == 0) {
+        if(staking_at_from.total_amount == amount) {
             remove_staking_at(from_odyssey_id, msg.sender);
             remove_staked_by(from_odyssey_id, msg.sender);
+        } else {
+            effective_timestamp = calculate_effective_timestamp(staked_by_from.timestamp,
+                                                                    staked_by_from.total_amount,
+                                                                    amount,
+                                                                    false);
+            staking_at_from.total_amount -= amount;
+            staking_at_from.timestamp = current_timestamp;
+            staking_at_from.effective_timestamp = effective_timestamp;
+            staked_by_from.total_amount -= amount;
+            staked_by_from.timestamp = current_timestamp;
+            staked_by_from.effective_timestamp = effective_timestamp;
         }
 
+        uint256 index_to = staking_at_indexes[msg.sender][to_odyssey_id];
         // The user is not staking on the odyssey
         if(index_to == 0) {
             index_to = staking_at[msg.sender].length;
             staking_at_indexes[msg.sender][to_odyssey_id] = index_to;
             staking_at[msg.sender].push();
             staking_at[msg.sender][index_to].odyssey_id = to_odyssey_id;
+            effective_timestamp = current_timestamp;
+        } else {
+            effective_timestamp = calculate_effective_timestamp(staking_at[msg.sender][index_to].timestamp,
+                                                                    staking_at[msg.sender][index_to].total_amount,
+                                                                    amount,
+                                                                    true);
         }
         staking_at[msg.sender][index_to].total_amount += amount;
         token == Token.DAD
                 ? staking_at[msg.sender][index_to].dad_amount += amount
                 : staking_at[msg.sender][index_to].mom_amount += amount;
-        staking_at[msg.sender][index_to].since = block.timestamp;
+        staking_at[msg.sender][index_to].timestamp = current_timestamp;
+        staking_at[msg.sender][index_to].effective_timestamp = effective_timestamp;
 
         index_to = staked_by_indexes[to_odyssey_id][msg.sender];
-
         // The user is not staking on the odyssey
         if(index_to == 0) {
             index_to = staked_by[to_odyssey_id].length;
@@ -392,7 +454,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         token == Token.DAD
                 ? staked_by[to_odyssey_id][index_to].dad_amount += amount
                 : staked_by[to_odyssey_id][index_to].mom_amount += amount;
-        staked_by[to_odyssey_id][index_to].since = block.timestamp;
+        staked_by[to_odyssey_id][index_to].timestamp = current_timestamp;
+        staked_by[to_odyssey_id][index_to].effective_timestamp = effective_timestamp;
         
         emit Restake(msg.sender, from_odyssey_id, to_odyssey_id, amount, token);
     }
@@ -409,7 +472,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
 
         for (int i = 0; i < int(unstakes[msg.sender].length); i++) {
             uint index = uint(i);
-            if((block.timestamp - unstakes[msg.sender][index].since) >= locking_period) {
+            if((block.timestamp - unstakes[msg.sender][index].untaking_timestamp) >= locking_period) {
                 moms_to_claim = moms_to_claim + unstakes[msg.sender][index].mom_amount;
                 dads_to_claim = dads_to_claim + unstakes[msg.sender][index].dad_amount;
                 unstakes[msg.sender][index] = unstakes[msg.sender][unstakes[msg.sender].length-1];
@@ -476,4 +539,24 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         odysseys[odyssey_id].total_stakers--;
         odysseys[odyssey_id].total_staked_into -= amount;
     }
+
+    /**
+     * @dev Utility function to calculate the effective timestamp of the stake.
+     * The formula is Tn+1 = (CnTn + CxTx) / (Cn + Cx)
+     * where Cn is the current stake and Tn is the moment that stake was set in.
+     * Tx and Cx are the new stake/unstake time and amount, respectively.
+     * @param effective_timestamp last stake timestamp
+     * @param current_amount current amount staked
+     * @param amount amount to be staked/unstaked
+     * @param is_stake flag to determine if it is stake or unstake
+     * @return uint new effective timestamp
+     */
+    function calculate_effective_timestamp(uint effective_timestamp, uint256 current_amount, uint256 amount, bool is_stake) private view returns(uint) {
+        uint current_timestamp = block.timestamp;
+        uint new_effective_timestamp = is_stake
+                                        ? ( (current_amount * effective_timestamp) + (amount * current_timestamp) ) / (current_amount + amount)
+                                        : ( (current_amount * effective_timestamp) - (amount * current_timestamp) ) / (current_amount - amount);
+        return new_effective_timestamp;
+    }
+
 }

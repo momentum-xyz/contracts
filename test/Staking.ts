@@ -373,11 +373,18 @@ describe("Staking", function () {
       await expect(staking.connect(addr0).claim_rewards()).to.revertedWith("No rewards available");
     });
 
+    it("should revert when updating rewards timeout", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const timeout = await time.latest() - time.duration.minutes(4);
+
+      await expect(staking.update_rewards([addr0.address], [amount], timeout)).to.revertedWith("Timeout");
+    });
+
     it("should claim rewards when user have only Odyssey rewards", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
-
-      await staking.update_rewards([addr0.address], [amount]);
+      await staking.update_rewards([addr0.address], [amount], await time.latest());
 
       await expect(await staking.connect(addr0).claim_rewards()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, amount);
     });
@@ -391,7 +398,7 @@ describe("Staking", function () {
       await momToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
 
-      await staking.update_rewards([addr0.address], [amount]);
+      await staking.update_rewards([addr0.address], [amount], await time.latest());
 
       await expect(await staking.connect(addr0).claim_rewards()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, amount);
     });
@@ -541,6 +548,21 @@ describe("Staking", function () {
       await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount , Token.DAD)).to.emit(staking, "Restake")
             .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount, Token.DAD);
     });
+
+    it("should restake DAD on already staked Odyssey", async function () {
+      const { staking, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      const new_odyssey_id = "0xe276ba1dff024fd28fcff53b6d937834";
+
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey_id, amount/2, Token.DAD);
+      await staking.connect(addr0).stake(new_odyssey_id, amount/2, Token.DAD);
+
+      await expect(staking.connect(addr0).restake(odyssey_id, new_odyssey_id, amount/2 , Token.DAD)).to.emit(staking, "Restake")
+            .withArgs(addr0.address, odyssey_id, new_odyssey_id, amount/2, Token.DAD);
+    });
   });
 
   describe("Utilities", function () {
@@ -596,6 +618,26 @@ describe("Staking", function () {
       expect(await staking.connect(addr0).locking_period()).not.eq(ethers.constants.AddressZero);
       
       await expect(staking.connect(addr0).update_locking_period(ethers.constants.AddressZero)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
+    });
+
+    it("should update Rewards Timeout if manager", async function () {
+      const { staking, owner } = await loadFixture(deployStaking);
+      const minutes = time.duration.minutes(4);
+      expect(await staking.connect(owner).rewards_timeout()).not.eq(0);
+      
+      staking.connect(owner).update_rewards_timeout(minutes);
+      
+      expect(await staking.connect(owner).rewards_timeout()).eq(minutes);
+    });
+    
+    it("should revert update Rewards Timeout if not manager", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const manager_role = await staking.MANAGER_ROLE();
+      const minutes = time.duration.minutes(4);
+
+      expect(await staking.connect(addr0).rewards_timeout()).not.eq(0);
+      
+      await expect(staking.connect(addr0).update_rewards_timeout(minutes)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
     });
   });
 });
