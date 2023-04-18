@@ -102,7 +102,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     event Restake(address, bytes16, bytes16, uint256, Token, uint256, uint256);
     event RewardsClaimed(address, uint256);
     event Stake(address, bytes16, uint256, Token, uint256);
-    event Unstake(address, bytes16, uint256, Token);
+    event Unstake(address, bytes16, uint256, Token, uint256);
 
     /**
      * @dev Initializer of the contract, is called when deploying
@@ -332,6 +332,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 amount = token == Token.DAD
                     ? _staking_at.dad_amount
                     : _staking_at.mom_amount;
+        uint256 remaining_amount = 0;
         
         if(staker.total_staked > amount) {
             if(_staking_at.total_amount > amount) {
@@ -352,6 +353,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                 _staking_at.timestamp = block.timestamp;
                 _staked_by.effective_timestamp = effective_timestamp;
                 _staked_by.timestamp = block.timestamp;
+                remaining_amount = _staking_at.total_amount;
             } else {
                 remove_staked_by(odyssey_id, msg.sender);
                 remove_staking_at(odyssey_id, msg.sender);
@@ -374,7 +376,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                     :  unstaker[unstaker.length-1].mom_amount += amount;
         unstaker[unstaker.length-1].untaking_timestamp = block.timestamp;
 
-        emit Unstake(msg.sender, odyssey_id, amount, token);
+        emit Unstake(msg.sender, odyssey_id, amount, token, remaining_amount);
     }
 
     /**

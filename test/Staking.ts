@@ -118,7 +118,7 @@ describe("Staking", function () {
       await momToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
 
-      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.MOM);
+      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.MOM, 0);
       expect(await staking.total_staked()).to.be.eq(0);
       
       const staker = await staking.stakers(addr0.address);
@@ -140,7 +140,7 @@ describe("Staking", function () {
       await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
       await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD);
 
-      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.MOM);
+      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.MOM, amount);
       expect(await staking.total_staked()).to.be.not.eq(0);
       
       const staker = await staking.stakers(addr0.address);
@@ -163,7 +163,7 @@ describe("Staking", function () {
       await staking.connect(addr0).stake(odyssey_one_id, amount, Token.MOM);
       await staking.connect(addr0).stake(odyssey_two_id, amount, Token.DAD);
 
-      await expect(await staking.connect(addr0).unstake(odyssey_one_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_one_id, amount, Token.MOM);
+      await expect(await staking.connect(addr0).unstake(odyssey_one_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_one_id, amount, Token.MOM, 0);
       expect(await staking.total_staked()).to.be.not.eq(0);
       
       const staker = await staking.stakers(addr0.address);
@@ -247,7 +247,7 @@ describe("Staking", function () {
       await momToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
 
-      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.MOM);
+      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.MOM, 0);
       expect(await staking.total_staked()).to.be.eq(0);
       
       const staker = await staking.stakers(addr0.address);
@@ -272,7 +272,7 @@ describe("Staking", function () {
       await staking.connect(addr0).stake(odyssey_two_id, amount/2, Token.MOM);
       await staking.connect(addr0).stake(odyssey_two_id, amount/2, Token.DAD);
 
-      await expect(await staking.connect(addr0).unstake(odyssey_one_id, Token.DAD)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_one_id, amount/2, Token.DAD);
+      await expect(await staking.connect(addr0).unstake(odyssey_one_id, Token.DAD)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_one_id, amount/2, Token.DAD, amount/2);
       expect(await staking.total_staked()).to.be.not.eq(0);
       
       const staker = await staking.stakers(addr0.address);
@@ -295,7 +295,7 @@ describe("Staking", function () {
       await staking.connect(addr0).stake(odyssey_one_id, amount, Token.MOM);
       await staking.connect(addr0).stake(odyssey_two_id, amount, Token.DAD);
 
-      await expect(await staking.connect(addr0).unstake(odyssey_two_id, Token.DAD)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_two_id, amount, Token.DAD);
+      await expect(await staking.connect(addr0).unstake(odyssey_two_id, Token.DAD)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_two_id, amount, Token.DAD, 0);
       expect(await staking.total_staked()).to.be.not.eq(0);
       
       const staker = await staking.stakers(addr0.address);
@@ -317,7 +317,7 @@ describe("Staking", function () {
       await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM);
       await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD);
 
-      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.DAD)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.DAD);
+      await expect(await staking.connect(addr0).unstake(odyssey_id, Token.DAD)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey_id, amount, Token.DAD, amount);
       expect(await staking.total_staked()).to.be.not.eq(0);
       
       const staker = await staking.stakers(addr0.address);
