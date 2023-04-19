@@ -1,5 +1,6 @@
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { expect } = require("chai");
+const { BigNumber } = require("ethers");
 
   const name = 'Odyssey_NFT';
   const symbol = 'ODS';
@@ -11,37 +12,37 @@ const { expect } = require("chai");
 describe("deploy contract", function() {
   async function deployContract(){
 
-  const [owner, addr1, addr2] = await ethers.getSigners();
-  const contract = await ethers.getContractFactory("OdysseyNFT");
-  const OdysseyNFT = await contract.deploy(name, symbol, maxOdysseySupply, mintPrice, URI);
+    const [owner, addr1, addr2, addr3] = await ethers.getSigners();
+    const contract = await ethers.getContractFactory("OdysseyNFT");
+    const OdysseyNFT = await contract.deploy(name, symbol, maxOdysseySupply, mintPrice, URI);
 
-  return { OdysseyNFT, name, symbol, maxOdysseySupply, mintPrice, owner, addr1, addr2, URI };
+    return { OdysseyNFT, name, symbol, maxOdysseySupply, mintPrice, owner, addr1, addr2, addr3, URI };
 
-};
+    };
 
-  it("Should match mintPrice to the value assigned on deployment", async function () {
-    const { OdysseyNFT, owner, mintPrice } = await loadFixture(deployContract);
+    it("Should match mintPrice to the value assigned on deployment", async function () {
+      const { OdysseyNFT, owner, mintPrice } = await loadFixture(deployContract);
 
-    const ownerBalance = await OdysseyNFT.balanceOf(owner.address);
-    expect(await OdysseyNFT.mintPrice()).to.equal(mintPrice);
-  });
-
-  describe('constructor', () => {
-    it('should set the name and symbol of the token', async () => {
-      const { OdysseyNFT, name, symbol } = await loadFixture(deployContract);
-      expect(await OdysseyNFT.name()).to.equal(name);
-      expect(await OdysseyNFT.symbol()).to.equal(symbol);
-    });
-
-    it('should set the max supply and mint price', async () => {
-      const { OdysseyNFT, maxTokens, mintPrice } = await loadFixture(deployContract);
-      expect(await OdysseyNFT.maxTokens()).to.equal(maxOdysseySupply);
+      const ownerBalance = await OdysseyNFT.balanceOf(owner.address);
       expect(await OdysseyNFT.mintPrice()).to.equal(mintPrice);
     });
 
-  });
+    describe('constructor', () => {
+      it('should set the name and symbol of the token', async () => {
+        const { OdysseyNFT, name, symbol } = await loadFixture(deployContract);
+        expect(await OdysseyNFT.name()).to.equal(name);
+        expect(await OdysseyNFT.symbol()).to.equal(symbol);
+      });
 
-  describe('pauseMinting and unpauseMinting', () => {
+      it('should set the max supply and mint price', async () => {
+        const { OdysseyNFT, maxTokens, mintPrice } = await loadFixture(deployContract);
+        expect(await OdysseyNFT.maxTokens()).to.equal(maxOdysseySupply);
+        expect(await OdysseyNFT.mintPrice()).to.equal(mintPrice);
+      });
+
+    });
+
+      describe('pauseMinting and unpauseMinting', () => {
         it('should pause and unpause minting', async () => {
           const { OdysseyNFT } = await loadFixture(deployContract);
 
@@ -57,7 +58,7 @@ describe("deploy contract", function() {
         });
       });
 
-  describe('mintNFT', () => {
+      describe('mintNFT', () => {
         it('should mint a new NFT', async () => {
           const { OdysseyNFT, owner, addr1, mintPrice } = await loadFixture(deployContract);
 
@@ -81,7 +82,7 @@ describe("deploy contract", function() {
           const { OdysseyNFT, owner, addr1 } = await loadFixture(deployContract);
     
           await expect(OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr1.address, 1)).to.not.be.reverted;
-          await expect(OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr1.address, 1)).to.be.revertedWith("Odyssey mints per wallet exceeded");
+          expect(OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr1.address, 1)).to.be.revertedWith("Odyssey mints per wallet exceeded");
 
         });
 
@@ -101,7 +102,7 @@ describe("deploy contract", function() {
 
       });
     
-      describe("transferOdyssey", function () {
+      describe("transferOdyssey", async function () {
         it("should transfer an OdysseyNFT from the owner to the buyer", async function () {
           const { OdysseyNFT, addr1, owner } = await loadFixture(deployContract);
       
@@ -121,6 +122,80 @@ describe("deploy contract", function() {
         const { OdysseyNFT, addr1, addr2 } = await loadFixture(deployContract);
         expect (OdysseyNFT["safeTransferFrom(address,address,uint256)"](addr1.address, addr2.address, 1)).to.be.revertedWith("ERC721: invalid token ID");
       });
+
+      });
+
+      describe("set max tokens that could be minted", async function () {
+        it("should set the maximum amount of OdysseyNFT's which can be minted", async function () {
+          const { OdysseyNFT, owner } = await loadFixture(deployContract);
+      
+          await OdysseyNFT.connect(await ethers.getSigner(owner.address)).setMaxTokens(1000);
+          // await OdysseyNFT.safeTransferFrom(owner.address, addr1.address, 1);
+          expect(await OdysseyNFT.maxTokens()).to.equal(1000);
+        });
+
+        it("should set the mint_price for minting the OdysseyNFT", async function () {
+          const { OdysseyNFT, owner } = await loadFixture(deployContract);
+      
+          await OdysseyNFT.connect(await ethers.getSigner(owner.address)).setMintPrice(1000);
+          // await OdysseyNFT.safeTransferFrom(owner.address, addr1.address, 1);
+          expect(await OdysseyNFT.mintPrice()).to.equal(1000);
+        });
+
+        it("should revert with max odyssey supply reached", async function () {
+          const { OdysseyNFT, owner, addr1, addr2 } = await loadFixture(deployContract);
+      
+          await OdysseyNFT.connect(await ethers.getSigner(owner.address)).setMaxTokens(1);
+          expect (OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr1.address, 1)).to.be.revertedWith("Max Odyssey supply reached");
+          // expect (OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr1.address, 2).to.be.revertedWith("Max Odyssey supply reached"));
+        });
+
+
+        // it("should set base_URI which holds the NFT metadata", async function () {
+        //   const { OdysseyNFT, owner, URI } = await loadFixture(deployContract);
+      
+        //   await OdysseyNFT.connect(await ethers.getSigner(sowner.address)).setbaseURI(URI);
+        //   // await OdysseyNFT.safeTransferFrom(owner.address, addr1.address, 1);
+        //   await OdysseyNFT.connect(await ethers.getSigner(owner.address)).setbaseURI(URI);
+        //   expect(OdysseyNFT._baseURI()).to.equal(URI);
+        // });
+
+      });
+
+      describe("contract paused", async function () {
+        it("should revert with Contract is paused", async function () {
+          const { OdysseyNFT, owner, addr1, addr2 } = await loadFixture(deployContract);
+          
+          await OdysseyNFT.connect(await ethers.getSigner(owner.address)).pause();
+          expect(OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr1.address, 1)).to.be.revertedWith("Pausable: paused");
+        });
+
+      });
+
+      describe("token already minted", async function () {
+        it("should revert with token already minted", async () => {
+          const { OdysseyNFT, owner, addr3 } = await loadFixture(deployContract);
+          expect (OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr3.address, 1)).to.be.revertedWith("ERC721: token already minted");
+          // const burnedURI = await OdysseyNFT.burnToken(1);
+          // console.log(burnedURI)
+          // expect(burnedURI);
+        });
+
+      });
+
+      describe("token burn", async function () {
+        it("should burn the token", async () => {
+          const { OdysseyNFT, owner, addr3 } = await loadFixture(deployContract);
+          const tokenId = await OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr3.address, 6);
+          await OdysseyNFT.burnToken(6)
+          expect( await OdysseyNFT.exists(6)).to.be.false
+        });
+
+        it("should revert with token does not exist", async () => {
+          const { OdysseyNFT, owner, addr3 } = await loadFixture(deployContract);
+          // const tokenId = await OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr3.address, 1);
+          expect(OdysseyNFT.burnToken(2)).to.be.revertedWith('token does not exist');
+        });
 
       });
 

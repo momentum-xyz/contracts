@@ -94,7 +94,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @return tokenId OdysseyId minted by the user
     */
     function safeMint(address to, uint256 tokenId) public whenNotPaused onlyOwner returns(uint256) {
-        require(walletMints[to] < maxOdysseyPerWallet, "Odyssey mints per wallet exceeded");
+        require(walletMints[to] <= maxOdysseyPerWallet, "Odyssey mints per wallet exceeded");
         walletMints[to] += 1;
         _odysseyIds.increment();
         require(tokenId < maxTokens(), "Max Odyssey supply reached");
@@ -131,12 +131,19 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
         return _customBaseURI;
     }
 
+        function exists(uint256 tokenId) public view returns (bool) {
+        return _exists(tokenId);
+    }
+
     /**
     * @notice Burns an OdysseyNFT
     * @param tokenId tokenId of an OdysseyNFT
     */ 
-      function burnToken(uint256 tokenId) public onlyOwner {
-      _burn(tokenId);
+      function burnToken(uint256 tokenId) public onlyOwner returns(bool) {
+        require(exists(tokenId), "token does not exist");
+        delete _tokenURIs[tokenId];
+        _burn(tokenId);
+        return true;
   }
 
 
@@ -148,5 +155,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
         require(_exists(tokenId), "ERC721Metadata: URI set of nonexistent token");
         _tokenURIs[tokenId] = tokenURI(tokenId);
     }
+
+
 
 }
