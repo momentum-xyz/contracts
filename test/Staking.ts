@@ -74,6 +74,28 @@ describe("Staking", function () {
       expect(await momToken.balanceOf(addr0.address)).to.eq(0);
     });
 
+    it("should stake MOM and update structures, after unstaking", async function () {
+      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      
+      await expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount, Token.MOM, amount);
+      expect(await staking.total_staked()).to.be.eq(amount);
+      expect(await momToken.balanceOf(addr0.address)).to.eq(0);
+
+      await staking.connect(addr0).unstake(odyssey_id, Token.MOM);
+
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      
+      await expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.MOM)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount, Token.MOM, amount);
+      expect(await staking.total_staked()).to.be.eq(amount);
+      expect(await momToken.balanceOf(addr0.address)).to.eq(0);
+    });
+
     it("should stake DAD and update structures, first time", async function () {
       const { staking, dadToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
@@ -104,6 +126,28 @@ describe("Staking", function () {
       
       await expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount, Token.DAD, amount*2);
       expect(await staking.total_staked()).to.be.eq(amount*2);
+      expect(await dadToken.balanceOf(addr0.address)).to.eq(0);
+    });
+
+    it("should stake DAD and update structures, after unstaking", async function () {
+      const { staking, dadToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      
+      await expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount, Token.DAD, amount);
+      expect(await staking.total_staked()).to.be.eq(amount);
+      expect(await dadToken.balanceOf(addr0.address)).to.eq(0);
+
+      await staking.connect(addr0).unstake(odyssey_id, Token.DAD);
+
+      await dadToken.mint(addr0.address, amount);
+      await dadToken.connect(addr0).approve(staking.address, amount);
+      
+      await expect(await staking.connect(addr0).stake(odyssey_id, amount, Token.DAD)).to.emit(staking, "Stake").withArgs(addr0.address, odyssey_id, amount, Token.DAD, amount);
+      expect(await staking.total_staked()).to.be.eq(amount);
       expect(await dadToken.balanceOf(addr0.address)).to.eq(0);
     });
   });
