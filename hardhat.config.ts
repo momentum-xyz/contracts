@@ -1,6 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@openzeppelin/hardhat-upgrades";
+import 'solidity-docgen';
 
 const config: HardhatUserConfig = {
   solidity:  {
@@ -10,8 +11,11 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 2
       }
-    }
+    },
   },
+  docgen: {
+    pages: 'files',
+  }
 };
 
 export default config;
