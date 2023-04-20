@@ -90,7 +90,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @return tokenId OdysseyId minted by the user
     */
     function safeMint(address to, uint256 tokenId) public whenNotPaused onlyOwner returns(uint256) {
-        require(walletMints[to] <= maxOdysseyPerWallet, "Odyssey mints per wallet exceeded");
+        require(walletMints[to] < maxOdysseyPerWallet, "Odyssey mints per wallet exceeded");
         walletMints[to] += 1;
         require(tokenId < maxTokens(), "Max Odyssey supply reached");
         _safeMint(to, tokenId);

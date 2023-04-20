@@ -12,11 +12,11 @@ import { BigNumber } from "ethers";
 describe("deploy contract", function() {
   async function deployContract(){
 
-    const [owner, addr1, addr2, addr3] = await ethers.getSigners();
+    const [owner, addr1, addr2, addr3, addr4] = await ethers.getSigners();
     const contract = await ethers.getContractFactory("OdysseyNFT");
     const OdysseyNFT = await contract.deploy(name, symbol, maxOdysseySupply, mintPrice, URI);
 
-    return { OdysseyNFT, name, symbol, maxOdysseySupply, mintPrice, owner, addr1, addr2, addr3, URI };
+    return { OdysseyNFT, name, symbol, maxOdysseySupply, mintPrice, owner, addr1, addr2, addr3, addr4, URI };
 
     };
 
@@ -185,8 +185,8 @@ describe("deploy contract", function() {
 
       describe("token burn", async function () {
         it("should burn the token", async () => {
-          const { OdysseyNFT, owner, addr3 } = await loadFixture(deployContract);
-          const tokenId = await OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr3.address, 6);
+          const { OdysseyNFT, owner, addr4 } = await loadFixture(deployContract);
+          const tokenId = await OdysseyNFT.connect(await ethers.getSigner(owner.address)).safeMint(addr4.address, 6);
           await OdysseyNFT.burnToken(6)
           expect( await OdysseyNFT.exists(6)).to.be.false
         });
