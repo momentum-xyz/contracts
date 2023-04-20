@@ -1,6 +1,6 @@
-const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
-const { expect } = require("chai");
-const { BigNumber } = require("ethers");
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { expect } from "chai";
+import { BigNumber } from "ethers";
 
   const name = 'Odyssey_NFT';
   const symbol = 'ODS';
