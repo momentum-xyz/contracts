@@ -525,8 +525,15 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param staker address of the user
      */
     function remove_staking_at(bytes16 odyssey_id, address staker) private {
-        staking_at_indexes[staker][staking_at[staker][staking_at[staker].length-1].odyssey_id] = staking_at_indexes[staker][odyssey_id];
-        staking_at[staker][staking_at_indexes[staker][odyssey_id]] = staking_at[staker][staking_at[staker].length-1];
+        // Only staking in one Odyssey
+        if(staking_at[staker].length == 2) {
+            delete staking_at[staker];
+            staking_at_indexes[staker][odyssey_id] = 0;
+            return;    
+        }
+        StakingAt storage last_item = staking_at[staker][staking_at[staker].length-1];
+        staking_at_indexes[staker][last_item.odyssey_id] = staking_at_indexes[staker][odyssey_id];
+        staking_at[staker][staking_at_indexes[staker][odyssey_id]] = last_item;
         staking_at[staker].pop();
     }
 
@@ -536,8 +543,14 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param staker address of the user
      */
     function remove_staked_by(bytes16 odyssey_id, address staker) private {
-        staked_by_indexes[odyssey_id][staked_by[odyssey_id][staked_by[odyssey_id].length-1].user] = staked_by_indexes[odyssey_id][staker];
-        staked_by[odyssey_id][staked_by_indexes[odyssey_id][staker]] = staked_by[odyssey_id][staked_by[odyssey_id].length-1];
+        if(staked_by[odyssey_id].length == 2) {
+            delete staked_by[odyssey_id];
+            staked_by_indexes[odyssey_id][staker] = 0;
+            return;
+        }
+        StakedBy storage last_item = staked_by[odyssey_id][staked_by[odyssey_id].length-1];
+        staked_by_indexes[odyssey_id][last_item.user] = staked_by_indexes[odyssey_id][staker];
+        staked_by[odyssey_id][staked_by_indexes[odyssey_id][staker]] = last_item;
         staked_by[odyssey_id].pop();
     }
 
