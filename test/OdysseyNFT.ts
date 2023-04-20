@@ -35,7 +35,7 @@ describe("deploy contract", function() {
       });
 
       it('should set the max supply and mint price', async () => {
-        const { OdysseyNFT, maxTokens, mintPrice } = await loadFixture(deployContract);
+        const { OdysseyNFT, mintPrice } = await loadFixture(deployContract);
         expect(await OdysseyNFT.maxTokens()).to.equal(maxOdysseySupply);
         expect(await OdysseyNFT.mintPrice()).to.equal(mintPrice);
       });
@@ -68,15 +68,6 @@ describe("deploy contract", function() {
           expect(await OdysseyNFT.ownerOf(1)).to.equal(addr1.address);
 
         });
-        
-        // it("should fail to mint an NFT when sent the incorrect value", async function () {
-        //   const { OdysseyNFT, owner, addr1 } = await loadFixture(deployContract);
-    
-        //   await expect(OdysseyNFT.connect(owner.address).mintNFT({ value: ethers.utils.parseEther("0.5") })).to.be.revertedWith("wrong amount sent");
-    
-        //   const balance = await OdysseyNFT.balanceOf(addr1.address);
-        //   expect(balance).to.equal(0);
-        // });
 
         it("should fail to mint an NFT when the maximum number of NFTs per wallet have already been minted", async function () {
           const { OdysseyNFT, owner, addr1 } = await loadFixture(deployContract);
@@ -147,18 +138,8 @@ describe("deploy contract", function() {
       
           await OdysseyNFT.connect(owner).setMaxTokens(1);
           expect (OdysseyNFT.connect(owner).safeMint(addr1.address, 1)).to.be.revertedWith("Max Odyssey supply reached");
-          // expect (OdysseyNFT.connect(owner).safeMint(addr1.address, 2).to.be.revertedWith("Max Odyssey supply reached"));
         });
 
-
-        // it("should set base_URI which holds the NFT metadata", async function () {
-        //   const { OdysseyNFT, owner, URI } = await loadFixture(deployContract);
-      
-        //   await OdysseyNFT.connect(await ethers.getSigner(sowner.address)).setbaseURI(URI);
-        //   // await OdysseyNFT.safeTransferFrom(owner.address, addr1.address, 1);
-        //   await OdysseyNFT.connect(owner).setbaseURI(URI);
-        //   expect(OdysseyNFT._baseURI()).to.equal(URI);
-        // });
 
       });
 
@@ -176,9 +157,6 @@ describe("deploy contract", function() {
         it("should revert with token already minted", async () => {
           const { OdysseyNFT, owner, addr3 } = await loadFixture(deployContract);
           expect (OdysseyNFT.connect(owner).safeMint(addr3.address, 1)).to.be.revertedWith("ERC721: token already minted");
-          // const burnedURI = await OdysseyNFT.burnToken(1);
-          // console.log(burnedURI)
-          // expect(burnedURI);
         });
 
       });
@@ -193,7 +171,6 @@ describe("deploy contract", function() {
 
         it("should revert with token does not exist", async () => {
           const { OdysseyNFT, owner, addr3 } = await loadFixture(deployContract);
-          // const tokenId = await OdysseyNFT.connect(owner).safeMint(addr3.address, 1);
           expect(OdysseyNFT.burnToken(2)).to.be.revertedWith('token does not exist');
         });
 
