@@ -98,7 +98,6 @@ describe("deploy contract", function() {
           const { OdysseyNFT, addr1, owner } = await loadFixture(deployContract);
       
           await OdysseyNFT.connect(owner).safeMint(owner.address, 1);
-          // await OdysseyNFT.safeTransferFrom(owner.address, addr1.address, 1);
           await OdysseyNFT["safeTransferFrom(address,address,uint256)"](owner.address, addr1.address, 1);
           expect(await OdysseyNFT.ownerOf(1)).to.equal(addr1.address);
         });
@@ -155,8 +154,9 @@ describe("deploy contract", function() {
 
       describe("token already minted", async function () {
         it("should revert with token already minted", async () => {
-          const { OdysseyNFT, owner, addr3 } = await loadFixture(deployContract);
-          expect (OdysseyNFT.connect(owner).safeMint(addr3.address, 1)).to.be.revertedWith("ERC721: token already minted");
+          const { OdysseyNFT, owner, addr3, addr4 } = await loadFixture(deployContract);
+           await expect (OdysseyNFT.connect(owner).safeMint(addr3.address, 1));
+           await expect (OdysseyNFT.connect(owner).safeMint(addr4.address, 1)).to.be.revertedWith("ERC721: token already minted");
         });
 
       });
