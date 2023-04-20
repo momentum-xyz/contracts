@@ -12,30 +12,44 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 * @notice The Momentum Token
 */
 contract MOMToken is ERC20, ERC20Burnable, Pausable, AccessControl {
+    /**
+     * @notice Role that can pause/unpause the contract.
+     */
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    
+    /**
+     * @notice Role that can mint new tokens.
+     */
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    
+    /**
+     * @notice Role that can burn tokens.
+     */
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
     /// Constructor of the contract
     constructor(uint256 initialSupply) ERC20("Momentum", "MOM") {
+        // assigning all roles to the deployer (owner)
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
         _grantRole(BURNER_ROLE, msg.sender);
+
+        // mint the initial supply
         _mint(msg.sender, initialSupply);
     }
 
     /**
-    *  @notice Pauses the contract, no actions will be allowed until it is unpaused
-    *  @dev Only pauser can pause the contract
+    * @notice Pauses the contract, no actions will be allowed until it is unpaused
+    * @dev Only pauser can pause the contract
     */
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
     /**
-    *  @notice Unpause the contract
-    *  @dev Only pauser can unpause the contract
+    * @notice Unpause the contract
+    * @dev Only pauser can unpause the contract
     */
     function unpause() public onlyRole(PAUSER_ROLE) {
         _unpause();
@@ -51,7 +65,7 @@ contract MOMToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         _mint(to, amount);
     }
 
-    /// @dev Only adding the 'whenNotPaused' modifier
+    /// @dev Overriding default function, only adding the 'whenNotPaused' modifier
     function _beforeTokenTransfer(
         address from,
         address to,
