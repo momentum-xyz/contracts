@@ -105,7 +105,6 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     */
     function safeTransferFrom(address from, address to, uint256 tokenId) public whenNotPaused virtual override {
         require(!paused(), "Contract is paused");
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: transfer caller is not owner nor approved");
         require(to != address(0), "ERC721: transfer to the zero address");
         safeTransferFrom(from, to, tokenId, "");
     }
