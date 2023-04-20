@@ -13,15 +13,11 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
  * @dev Contract to mint and modify odyssey NFTs
  */
 contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
-    using Counters for Counters.Counter;
-    Counters.Counter private _odysseyIds;
 
-    uint256 private _tokenIdCounter;
     uint256 private _maxTokens;
     uint256 private _mintPrice;
     string private _customBaseURI;
 
-    // uint256 public mintPrice = 1 ether;
     uint256 public maxOdysseySupply = 21000;
     uint256 public maxOdysseyPerWallet = 1;
 
@@ -96,7 +92,6 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     function safeMint(address to, uint256 tokenId) public whenNotPaused onlyOwner returns(uint256) {
         require(walletMints[to] <= maxOdysseyPerWallet, "Odyssey mints per wallet exceeded");
         walletMints[to] += 1;
-        _odysseyIds.increment();
         require(tokenId < maxTokens(), "Max Odyssey supply reached");
         _safeMint(to, tokenId);
         _setTokenURI(tokenId);
