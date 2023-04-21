@@ -104,27 +104,32 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @param to Accountid of OdysseyNFT buyer    
     */
     function safeTransferFrom(address from, address to, uint256 tokenId) public whenNotPaused virtual override {
-        require(!paused(), "Contract is paused");
         safeTransferFrom(from, to, tokenId, "");
     }
 
     /**
-    * @notice Sets the base URI of NFT folder in IPFS
-    * @param baseURI IPFS baseURI
+    * @notice Sets the base URI of NFT metadata folder
+    * @param baseURI baseURI
     */    
     function setbaseURI(string memory baseURI) public onlyOwner {
         _customBaseURI = baseURI;
     }
     
     /**
-    * @notice Returns the baseURI of the IPFS folder containing NFTs
-    * @return _customBaseURI IPFS baseURI
+    * @notice Returns the baseURI containing NFTs metadata
+    * @return _customBaseURI baseURI
     */ 
     function _baseURI() internal view virtual override returns(string memory) {
         return _customBaseURI;
     }
 
-        function exists(uint256 tokenId) public view returns (bool) {
+    /**
+    * @notice Checks if the tokenId exists
+    * @dev Returns whether the given token Id exists.
+    * @param tokenId uint256 Id of the token to check
+    * @return bool true if the token exists, false otherwise
+    */
+    function exists(uint256 tokenId) public view returns (bool) {
         return _exists(tokenId);
     }
 
