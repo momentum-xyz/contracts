@@ -1,6 +1,3 @@
-import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
-import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 
 async function main() {
@@ -17,15 +14,27 @@ async function main() {
   const staking = await upgrades.deployProxy(Staking, [momToken.address, dadToken.address],
      { initializer: "initialize", kind: "uups"});
 
+  const Nft = await ethers.getContractFactory('OdysseyNFT');
+  const nft = await Nft.deploy(
+    "OdysseyNFT", 
+    "ODS",
+    21000,
+    21000,
+    "http://IPFS/url"
+  );
+
+
   await momToken.deployed();
   await dadToken.deployed();
   await staking.deployed();
+  await nft.deployed();
   
   
   
   console.log(`MOM Token deployed to ${momToken.address} with Initial Supply of ${initialSupply}`);
   console.log(`DAD Token deployed to ${dadToken.address} with Initial Supply of ${initialSupply}`);
   console.log(`Staking deployed to ${staking.address}`);
+  console.log(`NFT deployed to ${nft.address}`);
 }
 
 main().catch((error) => {
