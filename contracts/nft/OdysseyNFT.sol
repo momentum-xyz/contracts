@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title OdysseyNFT
@@ -14,29 +15,52 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
  */
 contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
 
+    /**
+     * @dev Odyssey Id incremental counter
+     */
+    uint256 private _counter = 0;
+
+    /**
+     * @dev Max tokens supply
+     */
     uint256 private _maxTokens;
-    uint256 private _mintPrice;
+
+    /**
+     * @dev UUID Mask for compatibility
+     */
+    uint256 private _UUIDMask = 0x80008000000000000000;
+
+    /**
+     * @dev Custom base URI for the tokens
+     */
     string private _customBaseURI;
 
-    uint256 public maxOdysseySupply = 21000;
+    /**
+     * @notice Max Odysseys per wallet allowed
+     */
     uint256 public maxOdysseyPerWallet = 1;
 
-    mapping(address => uint256) public walletMints;
+    /**
+     * @notice Total number of Odysseys.
+     * It will increase when minting, and decrease when burning.
+     */
+    uint256 public odysseys = 0;
 
-    mapping (uint256 => string) private _tokenURIs;
-
-
+/**
+ *  @dev Constructor of the contract
+ * @param name_ ERC712 name
+ * @param symbol_ ERC721 Symbol
+ * @param maxOdysseySupply_ Max Odyssey supply
+ * @param customBaseURI The custom base URI
+ */
     constructor(
         string memory name_,
         string memory symbol_,
         uint256 maxOdysseySupply_,
-        uint256 mintPrice_,
         string memory customBaseURI
     ) ERC721(name_, symbol_) {
          _maxTokens = maxOdysseySupply_;
-        _mintPrice = mintPrice_;
         _customBaseURI = customBaseURI;
-
     }
 
     /**
@@ -62,14 +86,6 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     }
 
     /**
-    * @notice Sets the price of minting one Odyssey
-    * @param mintPrice_ Price of one Odyssey
-    */
-    function setMintPrice(uint256 mintPrice_) public onlyOwner {
-        _mintPrice = mintPrice_;
-    }
-
-    /**
     * @notice Returns the maximum number of Odyssey's which can be minted
     * @return _maxTokens
     */
@@ -78,30 +94,32 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     }
 
     /**
-    * @notice Returns minting price of one Odyssey
-    * @return _mintPrice
-    */
-    function mintPrice() public view returns (uint256) {
-        return _mintPrice;
+     * @notice Returns the current id from the id counter
+     * @return uint256 current ID counter value
+     */
+    function currentId() public view returns (uint256) {
+        return _counter;
     }
     
     /**
     * @notice Mints new OdysseyNFT for the user
-    * @return tokenId OdysseyId minted by the user
+    * @param to The user address to mint the NFT
     */
-    function safeMint(address to, uint256 tokenId) public whenNotPaused onlyOwner returns(uint256) {
-        require(walletMints[to] < maxOdysseyPerWallet, "Odyssey mints per wallet exceeded");
-        walletMints[to] += 1;
-        require(tokenId < maxTokens(), "Max Odyssey supply reached");
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId);
-        return tokenId;
+    function safeMint(address to) public whenNotPaused onlyOwner {
+        require(odysseys < maxTokens(), "Max Odyssey supply reached");
+        require(balanceOf(to) < maxOdysseyPerWallet, "Odyssey mints per wallet exceeded");
+        _increment();
+        uint256 token_id = _counter;
+        odysseys++;
+        _safeMint(to, token_id);
+        _setTokenURI(token_id, Strings.toString(token_id));
     }
 
     /**
     * @notice Transfers OdysseyNFT from owner to buyer
     * @param from Accountid of OdysseyNFT owner
-    * @param to Accountid of OdysseyNFT buyer    
+    * @param to Accountid of OdysseyNFT buyer   
+    * @param tokenId The OdysseyId to transfer 
     */
     function safeTransferFrom(address from, address to, uint256 tokenId) public whenNotPaused virtual override {
         safeTransferFrom(from, to, tokenId, "");
@@ -137,23 +155,19 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @notice Burns an OdysseyNFT
     * @param tokenId tokenId of an OdysseyNFT
     */ 
-      function burnToken(uint256 tokenId) public onlyOwner returns(bool) {
-        require(exists(tokenId), "token does not exist");
-        delete _tokenURIs[tokenId];
+    function burn(uint256 tokenId) public {
+        _requireMinted(tokenId);
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "caller is not token owner or approved");
+        odysseys--;
         _burn(tokenId);
-        return true;
-  }
-
-
-    /**
-    * @notice Set the tokenURI
-    * @param tokenId tokenId of the OdysseyNFT
-    */ 
-    function _setTokenURI(uint256 tokenId) internal virtual {
-        require(_exists(tokenId), "ERC721Metadata: URI set of nonexistent token");
-        _tokenURIs[tokenId] = tokenURI(tokenId);
     }
-
+    
+    /**
+     * @dev increments the ID counter;
+     */
+    function _increment() internal {
+        _counter = (_counter + 1) | _UUIDMask;
+    }
 
 
 }
