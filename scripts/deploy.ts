@@ -19,7 +19,6 @@ async function main() {
     "OdysseyNFT", 
     "ODS",
     21000,
-    21000,
     "http://IPFS/url"
   );
 
