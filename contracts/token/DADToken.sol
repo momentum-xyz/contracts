@@ -16,7 +16,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     bytes32 public constant TRANSFER_ROLE = keccak256("TRANSFER_ROLE");
-    // TODO: add list of addresses and tokens to be minted when deploying the contract
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
 
     /// Constructor of the contract
@@ -25,6 +25,7 @@ contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(BURNER_ROLE, msg.sender);
         _grantRole(TRANSFER_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
     }
 
     /// @notice Pauses the contract, no actions will be allowed until it is unpaused
@@ -43,7 +44,7 @@ contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
      * @param to Destination of the new minted tokens
      * @param amount Amount of tokens to be minted
      */
-    function mint(address to, uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
         _mint(to, amount);
     }
 
