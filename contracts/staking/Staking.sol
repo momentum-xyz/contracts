@@ -6,7 +6,6 @@ import "../token/MomToken.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "hardhat/console.sol";
 
 /** 
 * @title Staking Contract
@@ -79,30 +78,125 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 mom_amount;
         uint256 untaking_timestamp;
     }
-
+    /**
+     * @notice MOM token address
+     */
     address public mom_token;
+    
+    /**
+     * @notice DAD token address
+     */
     address public dad_token;
+
+    /**
+     * @notice Total number of tokens staked.
+     */
     uint256 public total_staked;
 
+    /**
+     * @notice Locking period to claim unstaked tokens
+     */
     uint public locking_period;
+
+    /**
+     * @notice Timeout to validate the rewards calculation
+     */
     uint public rewards_timeout;
+
+    /**
+     * @notice Timestamp of the last rewards calculation
+     */
     uint public last_rewards_calculation;
 
+    /**
+     * @notice Mapping of stakers by respective addresses
+     */
     mapping (address => Staker) public stakers;
+    
+    /**
+     * @notice Mapping of Odysseys by its ID's
+     */
     mapping (bytes16 => Odyssey) public odysseys;
 
+    /**
+     * @notice Mapping the values of each Odyssey that the user is staking
+     * Should match respective StakedBy
+     */
     mapping (address => StakingAt[]) internal staking_at;
+
+    /**
+     * @notice Mapping the indexes of the `StakingAt` list of the user
+     */
     mapping (address => mapping(bytes16 => uint256)) internal staking_at_indexes;
+
+    /**
+     * @notice Mapping the values of each Staker that the Odyssey is being staked by
+     * Should match respective StakingAt
+     */
     mapping (bytes16 => StakedBy[]) internal staked_by;
+
+    /**
+     * @notice Mapping the indexes of the `StakedBy` list of the Odyssey
+     */
     mapping (bytes16 => mapping(address => uint256)) internal staked_by_indexes;
 
+    /**
+     * @notice Mapping the unstake list of the user address
+     */
     mapping (address => Unstaker[]) public unstakes;
 
-    event ClaimedUnstaked(address, uint256, uint256);
-    event Restake(address, bytes16, bytes16, uint256, Token, uint256, uint256);
-    event RewardsClaimed(address, uint256);
-    event Stake(address, bytes16, uint256, Token, uint256);
-    event Unstake(address, bytes16, uint256, Token, uint256);
+    /**
+     * 
+     * @param user User address
+     * @param total_claimed Total tokens that were claimed
+     * @param total_staked Total staked by user
+     */
+    event ClaimedUnstaked(address user, uint256 total_claimed, uint256 total_staked);
+    
+    /**
+     * 
+     * @param user User address
+     * @param odyssey_from Odyssey ID that the user is removing stake
+     * @param odyssey_to Odyssey ID that the user is staking into
+     * @param amount Amount that's being restaked
+     * @param token Token used (MOM or DAD)
+     * @param total_staked_from Total amount of tokens that remains staked on the `odyssey_from`
+     * @param total_staked_to Total amount of tokens staked on `odyssey_to`
+     */
+    event Restake(address user,
+                  bytes16 odyssey_from,
+                  bytes16 odyssey_to,
+                  uint256 amount,
+                  Token token,
+                  uint256 total_staked_from,
+                  uint256 total_staked_to);
+    
+    /**
+     * 
+     * @param user User address
+     * @param total_rewards_claimed Total rewards claimed by the user
+     */
+    event RewardsClaimed(address user, uint256 total_rewards_claimed);
+
+    /**
+     * 
+     * @param user User address
+     * @param odyssey Odyssey ID that's being staked
+     * @param amount_staked Amount being staked
+     * @param token Token used (MOM or DAD) 
+     * @param total_staked Total being staked by the user on the Odyssey
+     */
+    event Stake(address user, bytes16 odyssey, uint256 amount_staked, Token token, uint256 total_staked);
+
+    /**
+     * 
+     * @param user User address
+     * @param odyssey Odyssey ID that's being unstaked
+     * @param amount_unstaked Amount unstaked
+     * @param token Token used (MOM or DAD)
+     * @param total_staked Total remained staked by the user on that Odyssey
+     */
+    event Unstake(address user, bytes16 odyssey, uint256 amount_unstaked, Token token, uint256 total_staked);
 
     /**
      * @dev Initializer of the contract, is called when deploying

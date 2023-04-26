@@ -9,19 +9,23 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 /** 
 * @title DAD Token
 * @author Odyssey
-* @notice DAD Token for vesting. Futue MOM Tokens. These tokens
+* @notice DAD Token for vesting. Future MOM Tokens. These tokens
 * cannot be transfered between accounts and only be used to stake and 
 * redeem MOM tokens after the lockup period
 */
 contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
+    /**
+     * @notice Role that can burn tokens.
+     */
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+    
+    /**
+     * @notice Role that can transfer tokens.
+     */
     bytes32 public constant TRANSFER_ROLE = keccak256("TRANSFER_ROLE");
-    // TODO: add list of addresses and tokens to be minted when deploying the contract
-
 
     /// Constructor of the contract
     constructor() ERC20("Momentum", "DAD") {
-        // TODO: mint the tokens to the respectives addresses
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(BURNER_ROLE, msg.sender);
         _grantRole(TRANSFER_ROLE, msg.sender);
@@ -47,7 +51,7 @@ contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         _mint(to, amount);
     }
 
-    /// @dev Only adding the 'whenNotPaused' modifier
+    /// @dev Overriding default function, only adding the 'whenNotPaused' modifier
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -74,7 +78,7 @@ contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         _burn(account, amount);
     }
 
-    /// @dev Only adding the 'onlyRole' modifier
+    /// @dev Overriding default function, only adding the 'onlyRole' modifier
     function transferFrom(
         address from,
         address to,
@@ -83,9 +87,8 @@ contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
         return super.transferFrom(from, to, amount);
     }
 
-    /// @dev Only adding the 'onlyRole' modifier
+    /// @dev Overriding default function, only adding the 'onlyRole' modifier
     function transfer(address to, uint256 amount) public virtual override onlyRole(TRANSFER_ROLE) returns (bool) {
         return super.transfer(to, amount);
     }
 }
-

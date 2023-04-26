@@ -47,7 +47,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     uint256 public odysseys = 0;
 
 /**
- *  @dev Constructor of the contract
+ * @dev Constructor of the contract
  * @param name_ ERC712 name
  * @param symbol_ ERC721 Symbol
  * @param maxOdysseySupply_ Max Odyssey supply
