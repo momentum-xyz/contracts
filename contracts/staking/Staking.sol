@@ -207,6 +207,11 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     event Unstake(address user, bytes16 odyssey, uint256 amount_unstaked, Token token, uint256 total_staked);
 
     /**
+     * @notice list of staked odysseys
+     */
+    bytes16[] public staked_odysseys;
+
+    /**
      * @dev Initializer of the contract, is called when deploying
      * @param _mom_token MOM Token contract address
      * @param _dad_token DAD Token contract address
@@ -276,6 +281,29 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      */
     function update_rewards_timeout(uint _rewards_timeout) public onlyRole(MANAGER_ROLE) {
         rewards_timeout = _rewards_timeout;
+    }
+
+    /**
+     * @dev Returns the list of staked Odysseys
+     */
+    function get_staked_odysseys() external view returns(bytes16[] memory) {
+        return staked_odysseys;
+    }
+
+    /**
+     * @dev Returns the list of Odysseys that the staker is staking at
+     * @param staker the staker address
+     */
+    function get_staking_at(address staker) external view returns(StakingAt[] memory) {
+        return staking_at[staker];
+    }
+
+    /**
+     * @dev Returns the list of Stakers that are staking at the Odyssey
+     * @param odyssey the Odyssey ID
+     */
+    function get_staked_by(bytes16 odyssey) external view returns(StakedBy[] memory) {
+        return staked_by[odyssey];
     }
 
     /**
@@ -376,6 +404,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         // First staker on the odyssey
         if(odyssey.odyssey_id == 0) {
             odyssey.odyssey_id = odyssey_id;
+            staked_odysseys.push(odyssey_id);
         }
         odyssey.total_stakers++;
         odyssey.total_staked_into += amount;
@@ -397,7 +426,6 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                     :  staked_by[odyssey_id][index].mom_amount += amount;
             staked_by[odyssey_id][index].timestamp = block.timestamp;
             staked_by[odyssey_id][index].effective_timestamp = block.timestamp;
-
         } else {
             staked_by[odyssey_id][index].effective_timestamp = 
                     calculate_effective_timestamp(staked_by[odyssey_id][index].timestamp,
@@ -527,6 +555,15 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             staked_by_from.effective_timestamp = effective_timestamp;
             total_staked_from = staked_by_from.total_amount;
         }
+
+        Odyssey storage odyssey_to = odysseys[to_odyssey_id];
+        if(odyssey_to.odyssey_id == 0) {
+            odyssey_to.odyssey_id = to_odyssey_id;
+            staked_odysseys.push(to_odyssey_id);
+        }
+        odyssey_to.total_staked_into += amount;
+        odyssey_to.total_stakers++;
+        decrease_odyssey_total_stakers(from_odyssey_id, amount);
 
         uint256 index_to = staking_at_indexes[msg.sender][to_odyssey_id];
         // The user is not staking on the odyssey
