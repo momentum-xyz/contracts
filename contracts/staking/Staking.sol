@@ -180,6 +180,14 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
 
     /**
      * 
+     * @param timestamp Timestamp when the rewards were updated
+     * @param blocknumber Blocknumber when the rewards were updated
+     */
+    event RewardsUpdated(uint timestamp, uint256 blocknumber);
+
+
+    /**
+     * 
      * @param user User address
      * @param odyssey Odyssey ID that's being staked
      * @param amount_staked Amount being staked
@@ -251,6 +259,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         }
 
         last_rewards_calculation = block.timestamp;
+        emit RewardsUpdated(last_rewards_calculation, block.number);
     }
 
     /**

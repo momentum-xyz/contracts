@@ -425,6 +425,13 @@ describe("Staking", function () {
       await expect(staking.update_rewards([addr0.address], [amount], timeout)).to.revertedWith("Timeout");
     });
 
+    it("should update rewards", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+
+      await expect(staking.update_rewards([addr0.address], [amount], await time.latest())).to.emit(staking, "RewardsUpdated").withArgs(await (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp, await ethers.provider.getBlockNumber());
+    });
+
     it("should claim rewards when user have only Odyssey rewards", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
