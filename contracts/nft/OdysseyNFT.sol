@@ -38,7 +38,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     /**
      * @notice Max Odysseys per wallet allowed
      */
-    uint256 public maxOdysseyPerWallet = 1;
+    uint256 private _maxOdysseysPerWallet;
 
     /**
      * @notice Total number of Odysseys.
@@ -50,16 +50,19 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
  * @dev Constructor of the contract
  * @param name_ ERC712 name
  * @param symbol_ ERC721 Symbol
- * @param maxOdysseySupply_ Max Odyssey supply
+ * @param maxTokens_ Max Odyssey supply
+ * @param maxOdysseysPerWallet_ Max Odysseys per wallet
  * @param customBaseURI The custom base URI
  */
     constructor(
         string memory name_,
         string memory symbol_,
-        uint256 maxOdysseySupply_,
+        uint256 maxTokens_,
+        uint256 maxOdysseysPerWallet_,
         string memory customBaseURI
     ) ERC721(name_, symbol_) {
-         _maxTokens = maxOdysseySupply_;
+         _maxTokens = maxTokens_;
+         _maxOdysseysPerWallet = maxOdysseysPerWallet_;
         _customBaseURI = customBaseURI;
     }
 
@@ -94,6 +97,22 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     }
 
     /**
+    * @notice Sets the maximum number of Odysseys which can be minted per wallet
+    * @param maxOdysseysPerWallet_ Maximum limit for number of odysseys per wallet
+    */
+    function setMaxOdysseysPerWallet(uint256 maxOdysseysPerWallet_) public onlyOwner {
+        _maxOdysseysPerWallet = maxOdysseysPerWallet_;
+    }
+
+    /**
+    * @notice Returns the maximum number of Odyssey's which can be minted per wallet
+    * @return _maxOdysseysPerWallet
+    */
+    function maxOdysseysPerWallet() public view returns (uint256) {
+        return _maxOdysseysPerWallet;
+    }
+
+    /**
      * @notice Returns the current id from the id counter
      * @return uint256 current ID counter value
      */
@@ -107,7 +126,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     */
     function safeMint(address to) public whenNotPaused onlyOwner {
         require(odysseys < maxTokens(), "Max Odyssey supply reached");
-        require(balanceOf(to) < maxOdysseyPerWallet, "Odyssey mints per wallet exceeded");
+        require(balanceOf(to) < _maxOdysseysPerWallet, "Odyssey mints per wallet exceeded");
         _increment();
         uint256 token_id = _counter;
         odysseys++;

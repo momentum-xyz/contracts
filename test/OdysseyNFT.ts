@@ -5,6 +5,7 @@ import { ethers} from "hardhat";
 const name = 'Odyssey_NFT';
 const symbol = 'ODS';
 const maxOdysseySupply = 21000;
+const maxTokensPerWallet = 150;
 const URI =  "ipfs://";
 const odyssey_1_id = "604472133179351442128897";
 const odyssey_2_id = "604472133179351442128898";
@@ -13,7 +14,7 @@ describe("deploy contract", function() {
   async function deployContract() {
     const [owner, addr1, addr2, addr3, addr4] = await ethers.getSigners();
     const contract = await ethers.getContractFactory("OdysseyNFT");
-    const OdysseyNFT = await contract.deploy(name, symbol, maxOdysseySupply, URI);
+    const OdysseyNFT = await contract.deploy(name, symbol, maxOdysseySupply, maxTokensPerWallet, URI);
 
     return { OdysseyNFT, name, symbol, maxOdysseySupply, owner, addr1, addr2, addr3, addr4, URI };
   };
@@ -57,6 +58,7 @@ describe("deploy contract", function() {
     it("should fail to mint an NFT when the maximum number of NFTs per wallet have already been minted", async function () {
       const { OdysseyNFT, owner, addr1 } = await loadFixture(deployContract);
 
+      await expect(OdysseyNFT.connect(owner).setMaxOdysseysPerWallet(1)).to.not.be.reverted;
       await expect(OdysseyNFT.connect(owner).safeMint(addr1.address)).to.not.be.reverted;
       await expect(OdysseyNFT.connect(owner).safeMint(addr1.address)).to.be.revertedWith("Odyssey mints per wallet exceeded");
     });
@@ -113,6 +115,14 @@ describe("deploy contract", function() {
   
       await OdysseyNFT.connect(owner).setMaxTokens(1);
       expect (OdysseyNFT.connect(owner).safeMint(addr1.address)).to.be.revertedWith("Max Odyssey supply reached");
+    });
+
+    it("should set the maximum amount of OdysseyNFT's which can be minted per wallet", async function () {
+      const { OdysseyNFT, owner } = await loadFixture(deployContract);
+  
+      await OdysseyNFT.connect(owner).setMaxOdysseysPerWallet(10);
+      // await OdysseyNFT.safeTransferFrom(owner.address, addr1.address, 1);
+      expect(await OdysseyNFT.maxOdysseysPerWallet()).to.equal(10);
     });
   });
 
