@@ -4,14 +4,6 @@
 
 _Contract to mint and modify odyssey NFTs_
 
-### maxOdysseyPerWallet
-
-```solidity
-uint256 maxOdysseyPerWallet
-```
-
-Max Odysseys per wallet allowed
-
 ### odysseys
 
 ```solidity
@@ -24,7 +16,7 @@ It will increase when minting, and decrease when burning.
 ### constructor
 
 ```solidity
-constructor(string name_, string symbol_, uint256 maxOdysseySupply_, string customBaseURI) public
+constructor(string name_, string symbol_, uint256 maxTokens_, uint256 maxOdysseysPerWallet_, string customBaseURI) public
 ```
 
 _Constructor of the contract_
@@ -35,7 +27,8 @@ _Constructor of the contract_
 | ---- | ---- | ----------- |
 | name_ | string | ERC712 name |
 | symbol_ | string | ERC721 Symbol |
-| maxOdysseySupply_ | uint256 | Max Odyssey supply |
+| maxTokens_ | uint256 | Max Odyssey supply |
+| maxOdysseysPerWallet_ | uint256 | Max Odysseys per wallet |
 | customBaseURI | string | The custom base URI |
 
 ### pause
@@ -81,6 +74,34 @@ Returns the maximum number of Odyssey's which can be minted
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | uint256 | _maxTokens |
+
+### setMaxOdysseysPerWallet
+
+```solidity
+function setMaxOdysseysPerWallet(uint256 maxOdysseysPerWallet_) public
+```
+
+Sets the maximum number of Odysseys which can be minted per wallet
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| maxOdysseysPerWallet_ | uint256 | Maximum limit for number of odysseys per wallet |
+
+### maxOdysseysPerWallet
+
+```solidity
+function maxOdysseysPerWallet() public view returns (uint256)
+```
+
+Returns the maximum number of Odyssey's which can be minted per wallet
+
+#### Return Values
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | _maxOdysseysPerWallet |
 
 ### currentId
 
