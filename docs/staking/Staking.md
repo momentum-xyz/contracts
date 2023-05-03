@@ -230,6 +230,19 @@ event RewardsClaimed(address user, uint256 total_rewards_claimed)
 | user | address | User address |
 | total_rewards_claimed | uint256 | Total rewards claimed by the user |
 
+### RewardsUpdated
+
+```solidity
+event RewardsUpdated(uint256 timestamp, uint256 blocknumber)
+```
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| timestamp | uint256 | Timestamp when the rewards were updated |
+| blocknumber | uint256 | Blocknumber when the rewards were updated |
+
 ### Stake
 
 ```solidity

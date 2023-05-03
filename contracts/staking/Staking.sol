@@ -122,23 +122,23 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @notice Mapping the values of each Odyssey that the user is staking
      * Should match respective StakedBy
      */
-    mapping (address => StakingAt[]) internal staking_at;
+    mapping (address => StakingAt[]) public staking_at;
 
     /**
      * @notice Mapping the indexes of the `StakingAt` list of the user
      */
-    mapping (address => mapping(bytes16 => uint256)) internal staking_at_indexes;
+    mapping (address => mapping(bytes16 => uint256)) public staking_at_indexes;
 
     /**
      * @notice Mapping the values of each Staker that the Odyssey is being staked by
      * Should match respective StakingAt
      */
-    mapping (bytes16 => StakedBy[]) internal staked_by;
+    mapping (bytes16 => StakedBy[]) public staked_by;
 
     /**
      * @notice Mapping the indexes of the `StakedBy` list of the Odyssey
      */
-    mapping (bytes16 => mapping(address => uint256)) internal staked_by_indexes;
+    mapping (bytes16 => mapping(address => uint256)) public staked_by_indexes;
 
     /**
      * @notice Mapping the unstake list of the user address
