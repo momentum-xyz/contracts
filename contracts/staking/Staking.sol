@@ -41,7 +41,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @dev Holds the relation Staker -> Odyssey info
      */
     struct StakingAt {
-        bytes16 odyssey_id;
+        uint256 odyssey_id;
         uint256 total_amount;
         uint256 dad_amount;
         uint256 mom_amount;
@@ -53,7 +53,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @dev Holds the Odyssey info
      */
     struct Odyssey {
-        bytes16 odyssey_id;
+        uint256 odyssey_id;
         uint256 total_staked_into;
         uint256 total_stakers;
     }
@@ -116,7 +116,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     /**
      * @notice Mapping of Odysseys by its ID's
      */
-    mapping (bytes16 => Odyssey) public odysseys;
+    mapping (uint256 => Odyssey) public odysseys;
 
     /**
      * @notice Mapping the values of each Odyssey that the user is staking
@@ -127,18 +127,18 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     /**
      * @notice Mapping the indexes of the `StakingAt` list of the user
      */
-    mapping (address => mapping(bytes16 => uint256)) public staking_at_indexes;
+    mapping (address => mapping(uint256 => uint256)) public staking_at_indexes;
 
     /**
      * @notice Mapping the values of each Staker that the Odyssey is being staked by
      * Should match respective StakingAt
      */
-    mapping (bytes16 => StakedBy[]) public staked_by;
+    mapping (uint256 => StakedBy[]) public staked_by;
 
     /**
      * @notice Mapping the indexes of the `StakedBy` list of the Odyssey
      */
-    mapping (bytes16 => mapping(address => uint256)) public staked_by_indexes;
+    mapping (uint256 => mapping(address => uint256)) public staked_by_indexes;
 
     /**
      * @notice Mapping the unstake list of the user address
@@ -164,8 +164,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param total_staked_to Total amount of tokens staked on `odyssey_to`
      */
     event Restake(address user,
-                  bytes16 odyssey_from,
-                  bytes16 odyssey_to,
+                  uint256 odyssey_from,
+                  uint256 odyssey_to,
                   uint256 amount,
                   Token token,
                   uint256 total_staked_from,
@@ -194,7 +194,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param token Token used (MOM or DAD) 
      * @param total_staked Total being staked by the user on the Odyssey
      */
-    event Stake(address user, bytes16 odyssey, uint256 amount_staked, Token token, uint256 total_staked);
+    event Stake(address user, uint256 odyssey, uint256 amount_staked, Token token, uint256 total_staked);
 
     /**
      * 
@@ -204,12 +204,12 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param token Token used (MOM or DAD)
      * @param total_staked Total remained staked by the user on that Odyssey
      */
-    event Unstake(address user, bytes16 odyssey, uint256 amount_unstaked, Token token, uint256 total_staked);
+    event Unstake(address user, uint256 odyssey, uint256 amount_unstaked, Token token, uint256 total_staked);
 
     /**
      * @notice list of staked odysseys
      */
-    bytes16[] public staked_odysseys;
+    uint256[] public staked_odysseys;
 
     /**
      * @dev Initializer of the contract, is called when deploying
@@ -286,7 +286,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     /**
      * @dev Returns the list of staked Odysseys
      */
-    function get_staked_odysseys() external view returns(bytes16[] memory) {
+    function get_staked_odysseys() external view returns(uint256[] memory) {
         return staked_odysseys;
     }
 
@@ -302,7 +302,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @dev Returns the list of Stakers that are staking at the Odyssey
      * @param odyssey the Odyssey ID
      */
-    function get_staked_by(bytes16 odyssey) external view returns(StakedBy[] memory) {
+    function get_staked_by(uint256 odyssey) external view returns(StakedBy[] memory) {
         return staked_by[odyssey];
     }
 
@@ -312,7 +312,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be staked in the Odyssey
      * @param token Token that will be staked
      */
-    function stake(bytes16 odyssey_id, uint256 amount, Token token) public payable {
+    function stake(uint256 odyssey_id, uint256 amount, Token token) public payable {
         _stake(odyssey_id, amount, token);
     }
 
@@ -321,7 +321,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param odyssey_id Odyssey id that will be unstaked
      * @param token token to be unstaked
      */
-    function unstake(bytes16 odyssey_id, Token token) public {
+    function unstake(uint256 odyssey_id, Token token) public {
         _unstake(odyssey_id, token);
     }
     
@@ -332,7 +332,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be restaked
      * @param token Token that will be restaked
      */
-    function restake(bytes16 from_odyssey_id, bytes16 to_odyssey_id, uint256 amount, Token token) public {
+    function restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) public {
         _restake(from_odyssey_id, to_odyssey_id, amount, token);
     }
 
@@ -356,7 +356,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be staked in the Odyssey
      * @param token Token that will be staked 
      */
-    function _stake(bytes16 odyssey_id, uint256 amount, Token token) private {
+    function _stake(uint256 odyssey_id, uint256 amount, Token token) private {
         if(token == Token.DAD) {
             require(IERC20(dad_token).transferFrom(payable(msg.sender), address(this), amount));
         } else {
@@ -448,7 +448,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param odyssey_id Odyssey id that will be unstaked
      * @param token token to be unstaked
      */
-    function _unstake(bytes16 odyssey_id, Token token) private {
+    function _unstake(uint256 odyssey_id, Token token) private {
         Staker storage staker = stakers[msg.sender];
         Odyssey storage odyssey = odysseys[odyssey_id];
 
@@ -517,7 +517,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be restaked
      * @param token Token that will be restaked
      */
-    function _restake(bytes16 from_odyssey_id, bytes16 to_odyssey_id, uint256 amount, Token token) private {
+    function _restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) private {
         require(amount > 0, "Amount cannot be 0");
         require(stakers[msg.sender].user != address(0), "Not a staker");
         require(staking_at_indexes[msg.sender][from_odyssey_id] > 0, "Not staking in that Odyssey");
@@ -664,7 +664,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param odyssey_id Odyssey id
      * @param staker address of the user
      */
-    function remove_staking_at(bytes16 odyssey_id, address staker) private {
+    function remove_staking_at(uint256 odyssey_id, address staker) private {
         // Only staking in one Odyssey
         if(staking_at[staker].length == 2) {
             delete staking_at[staker];
@@ -682,7 +682,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param odyssey_id Odyssey id
      * @param staker address of the user
      */
-    function remove_staked_by(bytes16 odyssey_id, address staker) private {
+    function remove_staked_by(uint256 odyssey_id, address staker) private {
         if(staked_by[odyssey_id].length == 2) {
             delete staked_by[odyssey_id];
             staked_by_indexes[odyssey_id][staker] = 0;
@@ -699,7 +699,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param odyssey_id Odyssey id
      * @param amount amount to be decreased from total_staked_into
      */
-    function decrease_odyssey_total_stakers(bytes16 odyssey_id, uint256 amount) private {
+    function decrease_odyssey_total_stakers(uint256 odyssey_id, uint256 amount) private {
         odysseys[odyssey_id].total_stakers--;
         odysseys[odyssey_id].total_staked_into -= amount;
     }
