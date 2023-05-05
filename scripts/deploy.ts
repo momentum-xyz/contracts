@@ -27,11 +27,6 @@ async function main() {
      { initializer: "initialize", kind: "uups"});
   await staking.deployed();
 
-
-
-  
-  
-  
   console.log(`MOM Token deployed to ${momToken.address} with Initial Supply of ${initialSupply}`);
   console.log(`DAD Token deployed to ${dadToken.address} with Initial Supply of ${initialSupply}`);
   console.log(`Staking deployed to ${staking.address}`);
