@@ -48,6 +48,24 @@ describe("Staking", function () {
       expect(await staking.dad_token()).to.equal(dadToken.address);
     });
   });
+  
+  describe("Upgrade", function () {
+    it("should set the right token contract addresses on initialize", async function () {
+      const { staking } = await loadFixture(deployStaking);
+      
+      const Stakingv2 = await ethers.getContractFactory("StakingV2Test");
+      await upgrades.upgradeProxy(staking.address, Stakingv2,
+        {
+          call: {fn: 'reinitialize'},
+          kind: "uups"
+        }
+      );
+
+      const stakingv2 = await ethers.getContractAt("StakingV2Test", staking.address)
+      expect(staking.address).to.be.eq(stakingv2.address);
+      expect(await stakingv2.isUpgraded()).to.be.eq(true);
+    });
+  });
 
   describe("Stake", function () {
     it("should revert if user do not have enough MOM balance or doesn't have allowance", async function () {
