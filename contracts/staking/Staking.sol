@@ -331,6 +331,18 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             require(IERC20(mom_token).transferFrom(payable(msg.sender), address(this), amount));
         }
 
+        _do_stake(odyssey_id, amount, token);
+
+        emit Stake(msg.sender, odyssey_id, amount, token, staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]].total_amount);
+    }
+
+    /**
+     * @dev Actual stake operation logic.
+     * @param odyssey_id Odyssey id to be staked on
+     * @param amount Amount to be staked in the Odyssey
+     * @param token Token that will be staked 
+     */
+    function _do_stake(uint256 odyssey_id, uint256 amount, Token token) private {
         Staker storage staker = stakers[msg.sender];
         Odyssey storage odyssey = odysseys[odyssey_id];
         
@@ -379,9 +391,6 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                     : staked_by[odyssey_id][index].mom_amount += amount;
             staked_by[odyssey_id][index].timestamp = block.timestamp;
         }
-
-        emit Stake(msg.sender, odyssey_id, amount, token, staked_by[odyssey_id][index].total_amount);
-
     }
 
     /**
@@ -467,8 +476,10 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             staked_by_from.mom_amount -= amount;
         }
 
+        // Removing all stake from the Odyssey
         if(staked_by_from.total_amount == amount) {
             remove_staked_by(from_odyssey_id, msg.sender);
+            decrease_odyssey_total_stakers(from_odyssey_id, amount);
         } else {
             effective_timestamp = calculate_effective_timestamp(staked_by_from.timestamp,
                                                                     staked_by_from.total_amount,
@@ -480,30 +491,10 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             total_staked_from = staked_by_from.total_amount;
         }
 
-        Odyssey storage odyssey_to = odysseys[to_odyssey_id];
-        if(odyssey_to.odyssey_id == 0) {
-            odyssey_to.odyssey_id = to_odyssey_id;
-            staked_odysseys.push(to_odyssey_id);
-        }
-        odyssey_to.total_staked_into += amount;
-        odyssey_to.total_stakers++;
-        decrease_odyssey_total_stakers(from_odyssey_id, amount);
+        // Restake in the 'to' Odyssey
+        _do_stake(to_odyssey_id, amount, token);
 
-        uint256 index_to = staked_by_indexes[to_odyssey_id][msg.sender];
-        // The user is not staking on the odyssey
-        if(index_to == 0) {
-            index_to = staked_by[to_odyssey_id].length;
-            staked_by_indexes[to_odyssey_id][msg.sender] = index_to;
-            staked_by[to_odyssey_id].push();
-            staked_by[to_odyssey_id][index_to].user = msg.sender;
-        }
-        staked_by[to_odyssey_id][index_to].total_amount += amount;
-        token == Token.DAD
-                ? staked_by[to_odyssey_id][index_to].dad_amount += amount
-                : staked_by[to_odyssey_id][index_to].mom_amount += amount;
-        staked_by[to_odyssey_id][index_to].timestamp = current_timestamp;
-        staked_by[to_odyssey_id][index_to].effective_timestamp = effective_timestamp;
-        uint256 total_staked_to = staked_by[to_odyssey_id][index_to].total_amount;
+        uint256 total_staked_to = staked_by[to_odyssey_id][staked_by_indexes[to_odyssey_id][msg.sender]].total_amount;
         
         emit Restake(msg.sender,
                     from_odyssey_id,
