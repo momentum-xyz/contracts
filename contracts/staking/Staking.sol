@@ -2,10 +2,11 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "../token/MomToken.sol";
+import "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "../token/MomToken.sol";
 
 /** 
 * @title Staking Contract
@@ -44,6 +45,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 odyssey_id;
         uint256 total_staked_into;
         uint256 total_stakers;
+        uint256 total_rewards;
     }
 
     /**
@@ -75,6 +77,11 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @notice DAD token address
      */
     address public dad_token;
+
+    /**
+     * @notice Odyssey NFT's token address
+     */
+    address public odyssey_nfts;
 
     /**
      * @notice Total number of tokens staked.
@@ -131,6 +138,13 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     
     /**
      * 
+     * @param odyssey_id Odyssey id
+     * @param total_rewards_claimed Total rewards claimed by the user
+     */
+    event OdysseyRewardsClaimed(uint256 odyssey_id, uint256 total_rewards_claimed);
+    
+    /**
+     * 
      * @param user User address
      * @param odyssey_from Odyssey ID that the user is removing stake
      * @param odyssey_to Odyssey ID that the user is staking into
@@ -153,6 +167,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param total_rewards_claimed Total rewards claimed by the user
      */
     event RewardsClaimed(address user, uint256 total_rewards_claimed);
+
 
     /**
      * 
@@ -191,10 +206,12 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @dev Initializer of the contract, is called when deploying
      * @param _mom_token MOM Token contract address
      * @param _dad_token DAD Token contract address
+     * @param _odyssey_nfts Odyssey NFT contract address
      */
-    function initialize(address _mom_token, address _dad_token) initializer public {
+    function initialize(address _mom_token, address _dad_token, address _odyssey_nfts) initializer public {
         mom_token = _mom_token;
         dad_token = _dad_token;
+        odyssey_nfts = _odyssey_nfts;
         locking_period = 7 days;
         rewards_timeout = 3 minutes;
         __AccessControl_init();
@@ -226,17 +243,36 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /**
+     * @dev Updates the Odyssey NFT's contract
+     * @param _odyssey_nfts new address for the Odyssey NFT's contract
+     */
+    function update_odyssey_nfts_contract(address _odyssey_nfts) public onlyRole(MANAGER_ROLE) {
+        odyssey_nfts = _odyssey_nfts;
+    }
+
+    /**
      * @dev Update the staking rewards of the users
      * @param addresses list of addresses to update
-     * @param amounts amount that will be updated per user
+     * @param stakers_amounts amount that will be updated per user
+     * @param odysseys_ids list of odysseys id to update
+     * @param odysseys_amounts amount that will be updated per odyssey
+     * @param timestamp timestamp of the reward calculation
      */
-    function update_rewards(address[] memory addresses, uint256[] memory amounts, uint timestamp ) public onlyRole(MANAGER_ROLE) {
-        if(block.timestamp - timestamp > rewards_timeout) {
-            revert("Timeout");
+    function update_rewards(address[] memory addresses, uint256[] memory stakers_amounts, uint256[] memory odysseys_ids, uint256[] memory odysseys_amounts, uint timestamp ) public onlyRole(MANAGER_ROLE) {
+        require(addresses.length > 0
+                && stakers_amounts.length > 0
+                && odysseys_ids.length > 0
+                && odysseys_amounts.length > 0,
+                "Invalid Input");
+        require(timestamp < block.timestamp, "Invalid timestamp");
+        require(block.timestamp - timestamp < rewards_timeout, "Timeout");
+
+        for(uint i = 0; i < addresses.length; i++) {
+            stakers[addresses[i]].total_rewards += stakers_amounts[i];
         }
 
         for(uint i = 0; i < addresses.length; i++) {
-            stakers[addresses[i]].total_rewards += amounts[i];
+            odysseys[odysseys_ids[i]].total_rewards += odysseys_amounts[i];
         }
 
         last_rewards_calculation = block.timestamp;
@@ -312,10 +348,17 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /**
-     * @notice Claim stake / Odyssey rewards
+     * @notice Claim stake rewards
      */
     function claim_rewards() public {
         _claim_rewards();
+    }
+    
+    /**
+     * @notice Claim Odyssey rewards
+     */
+    function claim_rewards(uint256 odyssey_id) public {
+        _claim_rewards(odyssey_id);
     }
 
     /**
@@ -400,9 +443,12 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      */
     function _unstake(uint256 odyssey_id, Token token) private {
         Staker storage staker = stakers[msg.sender];
+        require(staker.user != address(0)
+                && staked_by_indexes[odyssey_id][msg.sender] != 0
+                && staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]].user == staker.user,
+                "Invalid user or user not staking on that Odyssey");
         StakedBy storage _staked_by = staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]];
 
-        require(staker.user != address(0) && _staked_by.user == staker.user);
         token == Token.DAD
                     ? require(_staked_by.dad_amount > 0)
                     : require(_staked_by.mom_amount > 0);
@@ -551,6 +597,22 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         MOMToken(mom_token).mint(payable(msg.sender), amount);
 
         emit RewardsClaimed(msg.sender, amount);
+    }
+
+    /**
+     * @dev Mint new tokens as rewards for the Odyssey owner.
+     * @param odyssey_id Oddysey ID to claim the rewards
+     */
+    function _claim_rewards(uint256 odyssey_id) private {
+        require(odysseys[odyssey_id].total_rewards > 0, "No rewards available");
+        require(IERC721(odyssey_nfts).ownerOf(odyssey_id) == msg.sender, "Not owner of that Odyssey");
+
+        uint256 amount = odysseys[odyssey_id].total_rewards;
+        odysseys[odyssey_id].total_rewards = 0;
+
+        MOMToken(mom_token).mint(payable(msg.sender), amount);
+
+        emit OdysseyRewardsClaimed(odyssey_id, amount);
     }
 
     /**
