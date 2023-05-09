@@ -46,6 +46,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 total_staked_into;
         uint256 total_stakers;
         uint256 total_rewards;
+        uint256 staked_odysseys_index;
     }
 
     /**
@@ -68,6 +69,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 mom_amount;
         uint256 untaking_timestamp;
     }
+    
     /**
      * @notice MOM token address
      */
@@ -401,6 +403,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         // First staker on the odyssey
         if(odyssey.odyssey_id == 0) {
             odyssey.odyssey_id = odyssey_id;
+            odyssey.staked_odysseys_index = staked_odysseys.length;
             staked_odysseys.push(odyssey_id);
         }
         odyssey.total_stakers++;
@@ -634,13 +637,21 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
    /**
-     * @dev Utility function to decrease total stakers from an Odyssey
+     * @dev Utility function to decrease total stakers from an Odyssey, deleting it if necessary.
      * @param odyssey_id Odyssey id
      * @param amount amount to be decreased from total_staked_into
      */
     function decrease_odyssey_total_stakers(uint256 odyssey_id, uint256 amount) private {
-        odysseys[odyssey_id].total_stakers--;
-        odysseys[odyssey_id].total_staked_into -= amount;
+        Odyssey storage odyssey = odysseys[odyssey_id];
+        odyssey.total_stakers--;
+        odyssey.total_staked_into -= amount;
+        if(odyssey.total_stakers == 0 && odyssey.total_rewards == 0) {
+            uint256 last_item = staked_odysseys[staked_odysseys.length-1];
+            odysseys[last_item].staked_odysseys_index = odyssey.staked_odysseys_index;
+            staked_odysseys[odyssey.staked_odysseys_index] = last_item;
+            staked_odysseys.pop();
+            delete odysseys[odyssey_id];
+        }
     }
 
     /**
