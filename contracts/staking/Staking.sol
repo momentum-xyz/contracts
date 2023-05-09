@@ -368,6 +368,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param token Token that will be staked 
      */
     function _stake(uint256 odyssey_id, uint256 amount, Token token) private {
+        require(amount > 0, "Amount cannot be 0");
         if(token == Token.DAD) {
             require(IERC20(dad_token).transferFrom(payable(msg.sender), address(this), amount));
         } else {

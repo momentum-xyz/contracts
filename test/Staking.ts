@@ -68,6 +68,14 @@ describe("Staking", function () {
   });
 
   describe("Stake", function () {
+    it("should not be able to stake 0 tokens", async function () {
+      const { staking, momToken, addr0 } = await loadFixture(deployStaking);
+      const amount = 0;
+      const odyssey_id = "0xe276ba1dff024fd28fcff53b6d93028a";
+      
+      await expect(staking.connect(addr0).stake(odyssey_id, amount, Token.MOM)).to.be.revertedWith("Amount cannot be 0");
+    });
+
     it("should revert if user do not have enough MOM balance or doesn't have allowance", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
