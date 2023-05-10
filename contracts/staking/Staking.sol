@@ -2,10 +2,11 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "../token/MomToken.sol";
+import "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "../token/MomToken.sol";
 
 /** 
 * @title Staking Contract
@@ -38,24 +39,14 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /**
-     * @dev Holds the relation Staker -> Odyssey info
-     */
-    struct StakingAt {
-        bytes16 odyssey_id;
-        uint256 total_amount;
-        uint256 dad_amount;
-        uint256 mom_amount;
-        uint256 timestamp;
-        uint256 effective_timestamp;
-    }
-
-    /**
      * @dev Holds the Odyssey info
      */
     struct Odyssey {
-        bytes16 odyssey_id;
+        uint256 odyssey_id;
         uint256 total_staked_into;
         uint256 total_stakers;
+        uint256 total_rewards;
+        uint256 staked_odysseys_index;
     }
 
     /**
@@ -78,6 +69,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 mom_amount;
         uint256 untaking_timestamp;
     }
+    
     /**
      * @notice MOM token address
      */
@@ -87,6 +79,11 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @notice DAD token address
      */
     address public dad_token;
+
+    /**
+     * @notice Odyssey NFT's token address
+     */
+    address public odyssey_nfts;
 
     /**
      * @notice Total number of tokens staked.
@@ -116,29 +113,17 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     /**
      * @notice Mapping of Odysseys by its ID's
      */
-    mapping (bytes16 => Odyssey) public odysseys;
-
-    /**
-     * @notice Mapping the values of each Odyssey that the user is staking
-     * Should match respective StakedBy
-     */
-    mapping (address => StakingAt[]) public staking_at;
-
-    /**
-     * @notice Mapping the indexes of the `StakingAt` list of the user
-     */
-    mapping (address => mapping(bytes16 => uint256)) public staking_at_indexes;
+    mapping (uint256 => Odyssey) public odysseys;
 
     /**
      * @notice Mapping the values of each Staker that the Odyssey is being staked by
-     * Should match respective StakingAt
      */
-    mapping (bytes16 => StakedBy[]) public staked_by;
+    mapping (uint256 => StakedBy[]) public staked_by;
 
     /**
      * @notice Mapping the indexes of the `StakedBy` list of the Odyssey
      */
-    mapping (bytes16 => mapping(address => uint256)) public staked_by_indexes;
+    mapping (uint256 => mapping(address => uint256)) public staked_by_indexes;
 
     /**
      * @notice Mapping the unstake list of the user address
@@ -155,6 +140,13 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     
     /**
      * 
+     * @param odyssey_id Odyssey id
+     * @param total_rewards_claimed Total rewards claimed by the user
+     */
+    event OdysseyRewardsClaimed(uint256 odyssey_id, uint256 total_rewards_claimed);
+    
+    /**
+     * 
      * @param user User address
      * @param odyssey_from Odyssey ID that the user is removing stake
      * @param odyssey_to Odyssey ID that the user is staking into
@@ -164,8 +156,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param total_staked_to Total amount of tokens staked on `odyssey_to`
      */
     event Restake(address user,
-                  bytes16 odyssey_from,
-                  bytes16 odyssey_to,
+                  uint256 odyssey_from,
+                  uint256 odyssey_to,
                   uint256 amount,
                   Token token,
                   uint256 total_staked_from,
@@ -177,6 +169,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param total_rewards_claimed Total rewards claimed by the user
      */
     event RewardsClaimed(address user, uint256 total_rewards_claimed);
+
 
     /**
      * 
@@ -194,7 +187,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param token Token used (MOM or DAD) 
      * @param total_staked Total being staked by the user on the Odyssey
      */
-    event Stake(address user, bytes16 odyssey, uint256 amount_staked, Token token, uint256 total_staked);
+    event Stake(address user, uint256 odyssey, uint256 amount_staked, Token token, uint256 total_staked);
 
     /**
      * 
@@ -204,21 +197,23 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param token Token used (MOM or DAD)
      * @param total_staked Total remained staked by the user on that Odyssey
      */
-    event Unstake(address user, bytes16 odyssey, uint256 amount_unstaked, Token token, uint256 total_staked);
+    event Unstake(address user, uint256 odyssey, uint256 amount_unstaked, Token token, uint256 total_staked);
 
     /**
      * @notice list of staked odysseys
      */
-    bytes16[] public staked_odysseys;
+    uint256[] public staked_odysseys;
 
     /**
      * @dev Initializer of the contract, is called when deploying
      * @param _mom_token MOM Token contract address
      * @param _dad_token DAD Token contract address
+     * @param _odyssey_nfts Odyssey NFT contract address
      */
-    function initialize(address _mom_token, address _dad_token) initializer public {
+    function initialize(address _mom_token, address _dad_token, address _odyssey_nfts) initializer public {
         mom_token = _mom_token;
         dad_token = _dad_token;
+        odyssey_nfts = _odyssey_nfts;
         locking_period = 7 days;
         rewards_timeout = 3 minutes;
         __AccessControl_init();
@@ -250,17 +245,36 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /**
+     * @dev Updates the Odyssey NFT's contract
+     * @param _odyssey_nfts new address for the Odyssey NFT's contract
+     */
+    function update_odyssey_nfts_contract(address _odyssey_nfts) public onlyRole(MANAGER_ROLE) {
+        odyssey_nfts = _odyssey_nfts;
+    }
+
+    /**
      * @dev Update the staking rewards of the users
      * @param addresses list of addresses to update
-     * @param amounts amount that will be updated per user
+     * @param stakers_amounts amount that will be updated per user
+     * @param odysseys_ids list of odysseys id to update
+     * @param odysseys_amounts amount that will be updated per odyssey
+     * @param timestamp timestamp of the reward calculation
      */
-    function update_rewards(address[] memory addresses, uint256[] memory amounts, uint timestamp ) public onlyRole(MANAGER_ROLE) {
-        if(block.timestamp - timestamp > rewards_timeout) {
-            revert("Timeout");
+    function update_rewards(address[] memory addresses, uint256[] memory stakers_amounts, uint256[] memory odysseys_ids, uint256[] memory odysseys_amounts, uint timestamp ) public onlyRole(MANAGER_ROLE) {
+        require(addresses.length > 0
+                && stakers_amounts.length > 0
+                && odysseys_ids.length > 0
+                && odysseys_amounts.length > 0,
+                "Invalid Input");
+        require(timestamp < block.timestamp, "Invalid timestamp");
+        require(block.timestamp - timestamp < rewards_timeout, "Timeout");
+
+        for(uint i = 0; i < addresses.length; i++) {
+            stakers[addresses[i]].total_rewards += stakers_amounts[i];
         }
 
         for(uint i = 0; i < addresses.length; i++) {
-            stakers[addresses[i]].total_rewards += amounts[i];
+            odysseys[odysseys_ids[i]].total_rewards += odysseys_amounts[i];
         }
 
         last_rewards_calculation = block.timestamp;
@@ -286,23 +300,15 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     /**
      * @dev Returns the list of staked Odysseys
      */
-    function get_staked_odysseys() external view returns(bytes16[] memory) {
+    function get_staked_odysseys() external view returns(uint256[] memory) {
         return staked_odysseys;
-    }
-
-    /**
-     * @dev Returns the list of Odysseys that the staker is staking at
-     * @param staker the staker address
-     */
-    function get_staking_at(address staker) external view returns(StakingAt[] memory) {
-        return staking_at[staker];
     }
 
     /**
      * @dev Returns the list of Stakers that are staking at the Odyssey
      * @param odyssey the Odyssey ID
      */
-    function get_staked_by(bytes16 odyssey) external view returns(StakedBy[] memory) {
+    function get_staked_by(uint256 odyssey) external view returns(StakedBy[] memory) {
         return staked_by[odyssey];
     }
 
@@ -312,7 +318,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be staked in the Odyssey
      * @param token Token that will be staked
      */
-    function stake(bytes16 odyssey_id, uint256 amount, Token token) public payable {
+    function stake(uint256 odyssey_id, uint256 amount, Token token) public payable {
         _stake(odyssey_id, amount, token);
     }
 
@@ -321,7 +327,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param odyssey_id Odyssey id that will be unstaked
      * @param token token to be unstaked
      */
-    function unstake(bytes16 odyssey_id, Token token) public {
+    function unstake(uint256 odyssey_id, Token token) public {
         _unstake(odyssey_id, token);
     }
     
@@ -332,7 +338,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be restaked
      * @param token Token that will be restaked
      */
-    function restake(bytes16 from_odyssey_id, bytes16 to_odyssey_id, uint256 amount, Token token) public {
+    function restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) public {
         _restake(from_odyssey_id, to_odyssey_id, amount, token);
     }
 
@@ -344,10 +350,17 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /**
-     * @notice Claim stake / Odyssey rewards
+     * @notice Claim stake rewards
      */
     function claim_rewards() public {
         _claim_rewards();
+    }
+    
+    /**
+     * @notice Claim Odyssey rewards
+     */
+    function claim_rewards(uint256 odyssey_id) public {
+        _claim_rewards(odyssey_id);
     }
 
     /**
@@ -356,13 +369,26 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be staked in the Odyssey
      * @param token Token that will be staked 
      */
-    function _stake(bytes16 odyssey_id, uint256 amount, Token token) private {
+    function _stake(uint256 odyssey_id, uint256 amount, Token token) private {
+        require(amount > 0, "Amount cannot be 0");
         if(token == Token.DAD) {
             require(IERC20(dad_token).transferFrom(payable(msg.sender), address(this), amount));
         } else {
             require(IERC20(mom_token).transferFrom(payable(msg.sender), address(this), amount));
         }
 
+        _do_stake(odyssey_id, amount, token);
+
+        emit Stake(msg.sender, odyssey_id, amount, token, staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]].total_amount);
+    }
+
+    /**
+     * @dev Actual stake operation logic.
+     * @param odyssey_id Odyssey id to be staked on
+     * @param amount Amount to be staked in the Odyssey
+     * @param token Token that will be staked 
+     */
+    function _do_stake(uint256 odyssey_id, uint256 amount, Token token) private {
         Staker storage staker = stakers[msg.sender];
         Odyssey storage odyssey = odysseys[odyssey_id];
         
@@ -373,43 +399,17 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         
         token == Token.DAD ? staker.dad_amount += amount : staker.mom_amount += amount;
         total_staked += amount;
-        uint256 index = staking_at_indexes[msg.sender][odyssey_id];
-        if(staking_at[msg.sender].length == 0) {
-            staking_at[msg.sender].push();
-        }
-        if(index == 0) {
-            index = staking_at[msg.sender].length;
-            staking_at_indexes[msg.sender][odyssey_id] = index;
-            staking_at[msg.sender].push();
-            staking_at[msg.sender][index].odyssey_id = odyssey_id;
-            staking_at[msg.sender][index].total_amount = amount;
-            token == Token.DAD
-                    ? staking_at[msg.sender][index].dad_amount += amount
-                    : staking_at[msg.sender][index].mom_amount += amount;
-            staking_at[msg.sender][index].timestamp = block.timestamp;
-            staking_at[msg.sender][index].effective_timestamp = block.timestamp;
-        } else {
-            staking_at[msg.sender][index].effective_timestamp =
-                    calculate_effective_timestamp(staking_at[msg.sender][index].timestamp,
-                        staking_at[msg.sender][index].total_amount,
-                        amount,
-                            true);
-            staking_at[msg.sender][index].total_amount += amount;
-            token == Token.DAD
-                    ? staking_at[msg.sender][index].dad_amount += amount
-                    : staking_at[msg.sender][index].mom_amount += amount;
-            staking_at[msg.sender][index].timestamp = block.timestamp;
-        }
-
+        
         // First staker on the odyssey
         if(odyssey.odyssey_id == 0) {
             odyssey.odyssey_id = odyssey_id;
+            odyssey.staked_odysseys_index = staked_odysseys.length;
             staked_odysseys.push(odyssey_id);
         }
         odyssey.total_stakers++;
         odyssey.total_staked_into += amount;
 
-        index = staked_by_indexes[odyssey_id][msg.sender];
+        uint256 index = staked_by_indexes[odyssey_id][msg.sender];
         // First stake of the user
         if (staked_by[odyssey_id].length == 0) {
             staked_by[odyssey_id].push();
@@ -438,9 +438,6 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                     : staked_by[odyssey_id][index].mom_amount += amount;
             staked_by[odyssey_id][index].timestamp = block.timestamp;
         }
-
-        emit Stake(msg.sender, odyssey_id, amount, token, staked_by[odyssey_id][index].total_amount);
-
     }
 
     /**
@@ -448,46 +445,40 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param odyssey_id Odyssey id that will be unstaked
      * @param token token to be unstaked
      */
-    function _unstake(bytes16 odyssey_id, Token token) private {
+    function _unstake(uint256 odyssey_id, Token token) private {
         Staker storage staker = stakers[msg.sender];
-        Odyssey storage odyssey = odysseys[odyssey_id];
+        require(staker.user != address(0)
+                && staked_by_indexes[odyssey_id][msg.sender] != 0
+                && staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]].user == staker.user,
+                "Invalid user or user not staking on that Odyssey");
+        StakedBy storage _staked_by = staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]];
 
-        require(staker.user != address(0) && staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]].odyssey_id == odyssey.odyssey_id);
         token == Token.DAD
-                    ? require(staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]].dad_amount > 0)
-                    : require(staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]].mom_amount > 0);
+                    ? require(_staked_by.dad_amount > 0)
+                    : require(_staked_by.mom_amount > 0);
 
         Unstaker[] storage unstaker = unstakes[msg.sender];
-        StakingAt storage _staking_at = staking_at[msg.sender][staking_at_indexes[msg.sender][odyssey_id]];
-        StakedBy storage _staked_by = staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]];
         uint256 amount = token == Token.DAD
-                    ? _staking_at.dad_amount
-                    : _staking_at.mom_amount;
+                    ? _staked_by.dad_amount
+                    : _staked_by.mom_amount;
         uint256 remaining_amount = 0;
         
         if(staker.total_staked > amount) {
-            if(_staking_at.total_amount > amount) {
+            if(_staked_by.total_amount > amount) {
                 uint effective_timestamp = calculate_effective_timestamp(_staked_by.timestamp,
                         _staked_by.total_amount,
                         amount,
                         false);
                 token == Token.DAD
-                    ? _staking_at.dad_amount = 0
-                    : _staking_at.mom_amount = 0;
-                _staking_at.total_amount -= amount;
-                staker.total_staked -= amount;
-                _staked_by.total_amount -= amount;
-                token == Token.DAD
                     ? _staked_by.dad_amount = 0
                     : _staked_by.mom_amount = 0;
-                _staking_at.effective_timestamp = effective_timestamp;
-                _staking_at.timestamp = block.timestamp;
+                _staked_by.total_amount -= amount;
+                staker.total_staked -= amount;
                 _staked_by.effective_timestamp = effective_timestamp;
                 _staked_by.timestamp = block.timestamp;
-                remaining_amount = _staking_at.total_amount;
+                remaining_amount = _staked_by.total_amount;
             } else {
                 remove_staked_by(odyssey_id, msg.sender);
-                remove_staking_at(odyssey_id, msg.sender);
                 decrease_odyssey_total_stakers(odyssey_id, amount);
             }
             token == Token.DAD
@@ -497,7 +488,6 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         } else {
             delete stakers[msg.sender];
             remove_staked_by(odyssey_id, msg.sender);
-            remove_staking_at(odyssey_id, msg.sender);
             decrease_odyssey_total_stakers(odyssey_id, amount);
         }
         total_staked -= amount;
@@ -517,12 +507,11 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be restaked
      * @param token Token that will be restaked
      */
-    function _restake(bytes16 from_odyssey_id, bytes16 to_odyssey_id, uint256 amount, Token token) private {
+    function _restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) private {
         require(amount > 0, "Amount cannot be 0");
         require(stakers[msg.sender].user != address(0), "Not a staker");
-        require(staking_at_indexes[msg.sender][from_odyssey_id] > 0, "Not staking in that Odyssey");
+        require(staked_by_indexes[from_odyssey_id][msg.sender] > 0, "Not staking in that Odyssey");
         
-        StakingAt storage staking_at_from = staking_at[msg.sender][staking_at_indexes[msg.sender][from_odyssey_id]];
         StakedBy storage staked_by_from = staked_by[from_odyssey_id][staked_by_indexes[from_odyssey_id][msg.sender]];
 
         uint current_timestamp = block.timestamp;
@@ -530,77 +519,32 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 total_staked_from = 0;
         
         if (token == Token.DAD) {
-            require(staking_at_from.dad_amount >= amount, "Not enough staked");
-            staking_at_from.dad_amount -= amount;
+            require(staked_by_from.dad_amount >= amount, "Not enough staked");
             staked_by_from.dad_amount -= amount;
         } else {
-            require(staking_at_from.mom_amount >= amount, "Not enough staked");
-            staking_at_from.mom_amount -= amount;
+            require(staked_by_from.mom_amount >= amount, "Not enough staked");
             staked_by_from.mom_amount -= amount;
         }
 
-        if(staking_at_from.total_amount == amount) {
-            remove_staking_at(from_odyssey_id, msg.sender);
+        // Removing all stake from the Odyssey
+        if(staked_by_from.total_amount == amount) {
             remove_staked_by(from_odyssey_id, msg.sender);
+            decrease_odyssey_total_stakers(from_odyssey_id, amount);
         } else {
             effective_timestamp = calculate_effective_timestamp(staked_by_from.timestamp,
                                                                     staked_by_from.total_amount,
                                                                     amount,
                                                                     false);
-            staking_at_from.total_amount -= amount;
-            staking_at_from.timestamp = current_timestamp;
-            staking_at_from.effective_timestamp = effective_timestamp;
             staked_by_from.total_amount -= amount;
             staked_by_from.timestamp = current_timestamp;
             staked_by_from.effective_timestamp = effective_timestamp;
             total_staked_from = staked_by_from.total_amount;
         }
 
-        Odyssey storage odyssey_to = odysseys[to_odyssey_id];
-        if(odyssey_to.odyssey_id == 0) {
-            odyssey_to.odyssey_id = to_odyssey_id;
-            staked_odysseys.push(to_odyssey_id);
-        }
-        odyssey_to.total_staked_into += amount;
-        odyssey_to.total_stakers++;
-        decrease_odyssey_total_stakers(from_odyssey_id, amount);
+        // Restake in the 'to' Odyssey
+        _do_stake(to_odyssey_id, amount, token);
 
-        uint256 index_to = staking_at_indexes[msg.sender][to_odyssey_id];
-        // The user is not staking on the odyssey
-        if(index_to == 0) {
-            index_to = staking_at[msg.sender].length;
-            staking_at_indexes[msg.sender][to_odyssey_id] = index_to;
-            staking_at[msg.sender].push();
-            staking_at[msg.sender][index_to].odyssey_id = to_odyssey_id;
-            effective_timestamp = current_timestamp;
-        } else {
-            effective_timestamp = calculate_effective_timestamp(staking_at[msg.sender][index_to].timestamp,
-                                                                    staking_at[msg.sender][index_to].total_amount,
-                                                                    amount,
-                                                                    true);
-        }
-        staking_at[msg.sender][index_to].total_amount += amount;
-        token == Token.DAD
-                ? staking_at[msg.sender][index_to].dad_amount += amount
-                : staking_at[msg.sender][index_to].mom_amount += amount;
-        staking_at[msg.sender][index_to].timestamp = current_timestamp;
-        staking_at[msg.sender][index_to].effective_timestamp = effective_timestamp;
-
-        index_to = staked_by_indexes[to_odyssey_id][msg.sender];
-        // The user is not staking on the odyssey
-        if(index_to == 0) {
-            index_to = staked_by[to_odyssey_id].length;
-            staked_by_indexes[to_odyssey_id][msg.sender] = index_to;
-            staked_by[to_odyssey_id].push();
-            staked_by[to_odyssey_id][index_to].user = msg.sender;
-        }
-        staked_by[to_odyssey_id][index_to].total_amount += amount;
-        token == Token.DAD
-                ? staked_by[to_odyssey_id][index_to].dad_amount += amount
-                : staked_by[to_odyssey_id][index_to].mom_amount += amount;
-        staked_by[to_odyssey_id][index_to].timestamp = current_timestamp;
-        staked_by[to_odyssey_id][index_to].effective_timestamp = effective_timestamp;
-        uint256 total_staked_to = staked_by[to_odyssey_id][index_to].total_amount;
+        uint256 total_staked_to = staked_by[to_odyssey_id][staked_by_indexes[to_odyssey_id][msg.sender]].total_amount;
         
         emit Restake(msg.sender,
                     from_odyssey_id,
@@ -660,21 +604,19 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /**
-     * @dev Utility function to remove an entry from staking_at
-     * @param odyssey_id Odyssey id
-     * @param staker address of the user
+     * @dev Mint new tokens as rewards for the Odyssey owner.
+     * @param odyssey_id Oddysey ID to claim the rewards
      */
-    function remove_staking_at(bytes16 odyssey_id, address staker) private {
-        // Only staking in one Odyssey
-        if(staking_at[staker].length == 2) {
-            delete staking_at[staker];
-            staking_at_indexes[staker][odyssey_id] = 0;
-            return;    
-        }
-        StakingAt storage last_item = staking_at[staker][staking_at[staker].length-1];
-        staking_at_indexes[staker][last_item.odyssey_id] = staking_at_indexes[staker][odyssey_id];
-        staking_at[staker][staking_at_indexes[staker][odyssey_id]] = last_item;
-        staking_at[staker].pop();
+    function _claim_rewards(uint256 odyssey_id) private {
+        require(odysseys[odyssey_id].total_rewards > 0, "No rewards available");
+        require(IERC721(odyssey_nfts).ownerOf(odyssey_id) == msg.sender, "Not owner of that Odyssey");
+
+        uint256 amount = odysseys[odyssey_id].total_rewards;
+        odysseys[odyssey_id].total_rewards = 0;
+
+        MOMToken(mom_token).mint(payable(msg.sender), amount);
+
+        emit OdysseyRewardsClaimed(odyssey_id, amount);
     }
 
     /**
@@ -682,7 +624,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param odyssey_id Odyssey id
      * @param staker address of the user
      */
-    function remove_staked_by(bytes16 odyssey_id, address staker) private {
+    function remove_staked_by(uint256 odyssey_id, address staker) private {
         if(staked_by[odyssey_id].length == 2) {
             delete staked_by[odyssey_id];
             staked_by_indexes[odyssey_id][staker] = 0;
@@ -695,13 +637,21 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
    /**
-     * @dev Utility function to decrease total stakers from an Odyssey
+     * @dev Utility function to decrease total stakers from an Odyssey, deleting it if necessary.
      * @param odyssey_id Odyssey id
      * @param amount amount to be decreased from total_staked_into
      */
-    function decrease_odyssey_total_stakers(bytes16 odyssey_id, uint256 amount) private {
-        odysseys[odyssey_id].total_stakers--;
-        odysseys[odyssey_id].total_staked_into -= amount;
+    function decrease_odyssey_total_stakers(uint256 odyssey_id, uint256 amount) private {
+        Odyssey storage odyssey = odysseys[odyssey_id];
+        odyssey.total_stakers--;
+        odyssey.total_staked_into -= amount;
+        if(odyssey.total_stakers == 0 && odyssey.total_rewards == 0) {
+            uint256 last_item = staked_odysseys[staked_odysseys.length-1];
+            odysseys[last_item].staked_odysseys_index = odyssey.staked_odysseys_index;
+            staked_odysseys[odyssey.staked_odysseys_index] = last_item;
+            staked_odysseys.pop();
+            delete odysseys[odyssey_id];
+        }
     }
 
     /**
