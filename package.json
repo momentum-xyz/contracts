@@ -2,16 +2,20 @@
   "name": "hardhat-project",
   "scripts": {
     "build": "hardhat compile",
+    "build:abi": "hardhat export-abi",
     "test": "hardhat test",
-    "test:cov": "hardhat coverage"
+    "test:cov": "hardhat coverage",
+    "clean": "rimraf cache/ artifacts/ abi/ typechain-types/ coverage.json"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.2",
     "@openzeppelin/hardhat-upgrades": "^1.22.1",
-    "solidity-docgen": "^0.6.0-beta.35",
-    "hardhat": "^2.14.0"
+    "hardhat": "^2.14.0",
+    "hardhat-abi-exporter": "^2.10.1",
+    "rimraf": "^5.0.0",
+    "solidity-docgen": "^0.6.0-beta.35"
   },
   "dependencies": {
     "@openzeppelin/cli": "^2.8.2",
