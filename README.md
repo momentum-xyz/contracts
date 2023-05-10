@@ -1,7 +1,7 @@
 # Momentum Smart Contracts
 Smart Contracts for Momentum.
 ## Initialize
-Make sure to have `node` >= 16 and `npm` >= 8, then
+Make sure to have `node` >= 18 and `npm` >= 9, then
 ```sh
 npm i
 ```
