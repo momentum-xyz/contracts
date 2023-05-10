@@ -1,5 +1,10 @@
 {
   "name": "hardhat-project",
+  "scripts": {
+      "build": "hardhat compile",
+      "test": "hardhat test",
+      "test:cov": "hardhat coverage"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
