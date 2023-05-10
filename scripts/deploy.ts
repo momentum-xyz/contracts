@@ -6,14 +6,12 @@ async function main() {
 
   const MOMToken = await ethers.getContractFactory("MOMToken");
   const momToken = await MOMToken.deploy(initialSupply);
+  await momToken.deployed();
 
   const DADToken = await ethers.getContractFactory("DADToken");
   const dadToken = await DADToken.deploy();
+  await dadToken.deployed();
   
-  const Staking = await ethers.getContractFactory("Staking");
-  const staking = await upgrades.deployProxy(Staking, [momToken.address, dadToken.address],
-     { initializer: "initialize", kind: "uups"});
-
   const Nft = await ethers.getContractFactory('OdysseyNFT');
   const nft = await Nft.deploy(
     "OdysseyNFT", 
@@ -22,15 +20,13 @@ async function main() {
     150,
     "http://IPFS/url"
   );
-
-
-  await momToken.deployed();
-  await dadToken.deployed();
-  await staking.deployed();
   await nft.deployed();
   
-  
-  
+  const Staking = await ethers.getContractFactory("Staking");
+  const staking = await upgrades.deployProxy(Staking, [momToken.address, dadToken.address, nft.address],
+     { initializer: "initialize", kind: "uups"});
+  await staking.deployed();
+
   console.log(`MOM Token deployed to ${momToken.address} with Initial Supply of ${initialSupply}`);
   console.log(`DAD Token deployed to ${dadToken.address} with Initial Supply of ${initialSupply}`);
   console.log(`Staking deployed to ${staking.address}`);
