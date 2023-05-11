@@ -77,6 +77,7 @@ The ERC20 DAD token is a token that will be shared with early investors and the 
 The DAD tokens can be staked, but never transfered.
 
 ### Description
+ERC20 token with access control. No tokens will be minted on deploy and requires special access to transfer the tokens.
 
 ### UML Class Diagram
 ![DAD UML](./images/dad.png)
@@ -102,6 +103,8 @@ You can Restake your tokens from an Odyssey to another one, this process doesn't
 All the rewards are paid using new minted tokens, according to the inflation and staking rate. (Please, consult the Litepaper for the technical details)
 
 ### Description
+The Staking contract allows addresses to stake in Odysseys. All the funds are kept by the contract and can be reclaimed by the users when unstaking.
+A trusted third party calculate the rewards and updates the structures.
 
 ### UML Class Diagram
 ![Staking UML](./images/stake.png)
