@@ -33,26 +33,15 @@ struct Staker {
 }
 ```
 
-### StakingAt
-
-```solidity
-struct StakingAt {
-  bytes16 odyssey_id;
-  uint256 total_amount;
-  uint256 dad_amount;
-  uint256 mom_amount;
-  uint256 timestamp;
-  uint256 effective_timestamp;
-}
-```
-
 ### Odyssey
 
 ```solidity
 struct Odyssey {
-  bytes16 odyssey_id;
+  uint256 odyssey_id;
   uint256 total_staked_into;
   uint256 total_stakers;
+  uint256 total_rewards;
+  uint256 staked_odysseys_index;
 }
 ```
 
@@ -94,6 +83,14 @@ address dad_token
 ```
 
 DAD token address
+
+### odyssey_nfts
+
+```solidity
+address odyssey_nfts
+```
+
+Odyssey NFT's token address
 
 ### total_staked
 
@@ -138,41 +135,23 @@ Mapping of stakers by respective addresses
 ### odysseys
 
 ```solidity
-mapping(bytes16 => struct Staking.Odyssey) odysseys
+mapping(uint256 => struct Staking.Odyssey) odysseys
 ```
 
 Mapping of Odysseys by its ID's
 
-### staking_at
-
-```solidity
-mapping(address => struct Staking.StakingAt[]) staking_at
-```
-
-Mapping the values of each Odyssey that the user is staking
-Should match respective StakedBy
-
-### staking_at_indexes
-
-```solidity
-mapping(address => mapping(bytes16 => uint256)) staking_at_indexes
-```
-
-Mapping the indexes of the `StakingAt` list of the user
-
 ### staked_by
 
 ```solidity
-mapping(bytes16 => struct Staking.StakedBy[]) staked_by
+mapping(uint256 => struct Staking.StakedBy[]) staked_by
 ```
 
 Mapping the values of each Staker that the Odyssey is being staked by
-Should match respective StakingAt
 
 ### staked_by_indexes
 
 ```solidity
-mapping(bytes16 => mapping(address => uint256)) staked_by_indexes
+mapping(uint256 => mapping(address => uint256)) staked_by_indexes
 ```
 
 Mapping the indexes of the `StakedBy` list of the Odyssey
@@ -199,10 +178,23 @@ event ClaimedUnstaked(address user, uint256 total_claimed, uint256 total_staked)
 | total_claimed | uint256 | Total tokens that were claimed |
 | total_staked | uint256 | Total staked by user |
 
+### OdysseyRewardsClaimed
+
+```solidity
+event OdysseyRewardsClaimed(uint256 odyssey_id, uint256 total_rewards_claimed)
+```
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| odyssey_id | uint256 | Odyssey id |
+| total_rewards_claimed | uint256 | Total rewards claimed by the user |
+
 ### Restake
 
 ```solidity
-event Restake(address user, bytes16 odyssey_from, bytes16 odyssey_to, uint256 amount, enum Staking.Token token, uint256 total_staked_from, uint256 total_staked_to)
+event Restake(address user, uint256 odyssey_from, uint256 odyssey_to, uint256 amount, enum Staking.Token token, uint256 total_staked_from, uint256 total_staked_to)
 ```
 
 #### Parameters
@@ -210,8 +202,8 @@ event Restake(address user, bytes16 odyssey_from, bytes16 odyssey_to, uint256 am
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | user | address | User address |
-| odyssey_from | bytes16 | Odyssey ID that the user is removing stake |
-| odyssey_to | bytes16 | Odyssey ID that the user is staking into |
+| odyssey_from | uint256 | Odyssey ID that the user is removing stake |
+| odyssey_to | uint256 | Odyssey ID that the user is staking into |
 | amount | uint256 | Amount that's being restaked |
 | token | enum Staking.Token | Token used (MOM or DAD) |
 | total_staked_from | uint256 | Total amount of tokens that remains staked on the `odyssey_from` |
@@ -246,7 +238,7 @@ event RewardsUpdated(uint256 timestamp, uint256 blocknumber)
 ### Stake
 
 ```solidity
-event Stake(address user, bytes16 odyssey, uint256 amount_staked, enum Staking.Token token, uint256 total_staked)
+event Stake(address user, uint256 odyssey, uint256 amount_staked, enum Staking.Token token, uint256 total_staked)
 ```
 
 #### Parameters
@@ -254,7 +246,7 @@ event Stake(address user, bytes16 odyssey, uint256 amount_staked, enum Staking.T
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | user | address | User address |
-| odyssey | bytes16 | Odyssey ID that's being staked |
+| odyssey | uint256 | Odyssey ID that's being staked |
 | amount_staked | uint256 | Amount being staked |
 | token | enum Staking.Token | Token used (MOM or DAD) |
 | total_staked | uint256 | Total being staked by the user on the Odyssey |
@@ -262,7 +254,7 @@ event Stake(address user, bytes16 odyssey, uint256 amount_staked, enum Staking.T
 ### Unstake
 
 ```solidity
-event Unstake(address user, bytes16 odyssey, uint256 amount_unstaked, enum Staking.Token token, uint256 total_staked)
+event Unstake(address user, uint256 odyssey, uint256 amount_unstaked, enum Staking.Token token, uint256 total_staked)
 ```
 
 #### Parameters
@@ -270,15 +262,23 @@ event Unstake(address user, bytes16 odyssey, uint256 amount_unstaked, enum Staki
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | user | address | User address |
-| odyssey | bytes16 | Odyssey ID that's being unstaked |
+| odyssey | uint256 | Odyssey ID that's being unstaked |
 | amount_unstaked | uint256 | Amount unstaked |
 | token | enum Staking.Token | Token used (MOM or DAD) |
 | total_staked | uint256 | Total remained staked by the user on that Odyssey |
 
+### staked_odysseys
+
+```solidity
+uint256[] staked_odysseys
+```
+
+list of staked odysseys
+
 ### initialize
 
 ```solidity
-function initialize(address _mom_token, address _dad_token) public
+function initialize(address _mom_token, address _dad_token, address _odyssey_nfts) public
 ```
 
 _Initializer of the contract, is called when deploying_
@@ -289,6 +289,7 @@ _Initializer of the contract, is called when deploying_
 | ---- | ---- | ----------- |
 | _mom_token | address | MOM Token contract address |
 | _dad_token | address | DAD Token contract address |
+| _odyssey_nfts | address | Odyssey NFT contract address |
 
 ### _authorizeUpgrade
 
@@ -333,10 +334,24 @@ _Updates the DAD token contract_
 | ---- | ---- | ----------- |
 | _dad_token | address | new address for the DAD token contract |
 
+### update_odyssey_nfts_contract
+
+```solidity
+function update_odyssey_nfts_contract(address _odyssey_nfts) public
+```
+
+_Updates the Odyssey NFT's contract_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _odyssey_nfts | address | new address for the Odyssey NFT's contract |
+
 ### update_rewards
 
 ```solidity
-function update_rewards(address[] addresses, uint256[] amounts, uint256 timestamp) public
+function update_rewards(address[] addresses, uint256[] stakers_amounts, uint256[] odysseys_ids, uint256[] odysseys_amounts, uint256 timestamp) public
 ```
 
 _Update the staking rewards of the users_
@@ -346,8 +361,10 @@ _Update the staking rewards of the users_
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | addresses | address[] | list of addresses to update |
-| amounts | uint256[] | amount that will be updated per user |
-| timestamp | uint256 |  |
+| stakers_amounts | uint256[] | amount that will be updated per user |
+| odysseys_ids | uint256[] | list of odysseys id to update |
+| odysseys_amounts | uint256[] | amount that will be updated per odyssey |
+| timestamp | uint256 | timestamp of the reward calculation |
 
 ### update_locking_period
 
@@ -377,10 +394,32 @@ _Update the rewards_timeout to update calculated rewards_
 | ---- | ---- | ----------- |
 | _rewards_timeout | uint256 | new rewards_timeout |
 
+### get_staked_odysseys
+
+```solidity
+function get_staked_odysseys() external view returns (uint256[])
+```
+
+_Returns the list of staked Odysseys_
+
+### get_staked_by
+
+```solidity
+function get_staked_by(uint256 odyssey) external view returns (struct Staking.StakedBy[])
+```
+
+_Returns the list of Stakers that are staking at the Odyssey_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| odyssey | uint256 | the Odyssey ID |
+
 ### stake
 
 ```solidity
-function stake(bytes16 odyssey_id, uint256 amount, enum Staking.Token token) public payable
+function stake(uint256 odyssey_id, uint256 amount, enum Staking.Token token) public payable
 ```
 
 Stake operation
@@ -389,14 +428,14 @@ Stake operation
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| odyssey_id | bytes16 | Odyssey id to be staked on |
+| odyssey_id | uint256 | Odyssey id to be staked on |
 | amount | uint256 | Amount to be staked in the Odyssey |
 | token | enum Staking.Token | Token that will be staked |
 
 ### unstake
 
 ```solidity
-function unstake(bytes16 odyssey_id, enum Staking.Token token) public
+function unstake(uint256 odyssey_id, enum Staking.Token token) public
 ```
 
 Unstake operation
@@ -405,13 +444,13 @@ Unstake operation
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| odyssey_id | bytes16 | Odyssey id that will be unstaked |
+| odyssey_id | uint256 | Odyssey id that will be unstaked |
 | token | enum Staking.Token | token to be unstaked |
 
 ### restake
 
 ```solidity
-function restake(bytes16 from_odyssey_id, bytes16 to_odyssey_id, uint256 amount, enum Staking.Token token) public
+function restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, enum Staking.Token token) public
 ```
 
 Restake operation
@@ -420,8 +459,8 @@ Restake operation
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| from_odyssey_id | bytes16 | Id of the odyssey that the amount will be unstaked |
-| to_odyssey_id | bytes16 | Id of the odyssey that the amount will be staker |
+| from_odyssey_id | uint256 | Id of the odyssey that the amount will be unstaked |
+| to_odyssey_id | uint256 | Id of the odyssey that the amount will be staker |
 | amount | uint256 | Amount to be restaked |
 | token | enum Staking.Token | Token that will be restaked |
 
@@ -439,5 +478,13 @@ Transfer untaked tokens back to the user
 function claim_rewards() public
 ```
 
-Claim stake / Odyssey rewards
+Claim stake rewards
+
+### claim_rewards
+
+```solidity
+function claim_rewards(uint256 odyssey_id) public
+```
+
+Claim Odyssey rewards
 
