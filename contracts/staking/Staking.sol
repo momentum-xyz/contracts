@@ -667,9 +667,12 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      */
     function calculate_effective_timestamp(uint effective_timestamp, uint256 current_amount, uint256 amount, bool is_stake) private view returns(uint) {
         uint current_timestamp = block.timestamp;
+        uint actual_effective_timestamp = effective_timestamp > last_rewards_calculation
+                                            ? effective_timestamp
+                                            : last_rewards_calculation;
         uint new_effective_timestamp = is_stake
-                                        ? ( (current_amount * effective_timestamp) + (amount * current_timestamp) ) / (current_amount + amount)
-                                        : ( (current_amount * effective_timestamp) - (amount * current_timestamp) ) / (current_amount - amount);
+                                        ? ( (current_amount * actual_effective_timestamp) + (amount * current_timestamp) ) / (current_amount + amount)
+                                        : ( (current_amount * actual_effective_timestamp) - (amount * current_timestamp) ) / (current_amount - amount);
         return new_effective_timestamp;
     }
 
