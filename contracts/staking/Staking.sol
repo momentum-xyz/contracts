@@ -273,7 +273,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             stakers[addresses[i]].total_rewards += stakers_amounts[i];
         }
 
-        for(uint i = 0; i < addresses.length; i++) {
+        for(uint i = 0; i < odysseys_ids.length; i++) {
             odysseys[odysseys_ids[i]].total_rewards += odysseys_amounts[i];
         }
 
