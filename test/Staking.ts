@@ -555,6 +555,14 @@ describe("Staking", function () {
       await expect(staking.update_rewards([addr0.address], [amount], [1], [1], timeout)).to.revertedWith("Invalid timestamp");
     });
 
+    it("should revert when updating rewards receives not even lists lengths", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const amount = 1000;
+
+      await expect(staking.update_rewards([addr0.address], [amount], [1,2], [1], await time.latest())).to.revertedWith("Lengths don't match");
+      await expect(staking.update_rewards([addr0.address], [amount, amount], [1], [1], await time.latest())).to.revertedWith("Lengths don't match");
+    });
+
     it("should update rewards", async function () {
       const { staking, momToken, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
