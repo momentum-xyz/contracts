@@ -266,6 +266,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                 && odysseys_ids.length > 0
                 && odysseys_amounts.length > 0,
                 "Invalid Input");
+        require(addresses.length == stakers_amounts.length
+                && odysseys_ids.length == odysseys_amounts.length,
+                "Lengths don't match");
         require(timestamp < block.timestamp, "Invalid timestamp");
         require(block.timestamp - timestamp < rewards_timeout, "Timeout");
 
