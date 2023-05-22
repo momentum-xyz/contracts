@@ -136,14 +136,14 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param total_claimed Total tokens that were claimed
      * @param total_staked Total staked by user
      */
-    event ClaimedUnstaked(address user, uint256 total_claimed, uint256 total_staked);
+    event ClaimedUnstaked(address indexed user, uint256 total_claimed, uint256 total_staked);
     
     /**
      * 
      * @param odyssey_id Odyssey id
      * @param total_rewards_claimed Total rewards claimed by the user
      */
-    event OdysseyRewardsClaimed(uint256 odyssey_id, uint256 total_rewards_claimed);
+    event OdysseyRewardsClaimed(uint256 indexed odyssey_id, uint256 total_rewards_claimed);
     
     /**
      * 
@@ -155,9 +155,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param total_staked_from Total amount of tokens that remains staked on the `odyssey_from`
      * @param total_staked_to Total amount of tokens staked on `odyssey_to`
      */
-    event Restake(address user,
-                  uint256 odyssey_from,
-                  uint256 odyssey_to,
+    event Restake(address indexed user,
+                  uint256 indexed odyssey_from,
+                  uint256 indexed odyssey_to,
                   uint256 amount,
                   Token token,
                   uint256 total_staked_from,
@@ -168,7 +168,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param user User address
      * @param total_rewards_claimed Total rewards claimed by the user
      */
-    event RewardsClaimed(address user, uint256 total_rewards_claimed);
+    event RewardsClaimed(address indexed user, uint256 total_rewards_claimed);
 
 
     /**
@@ -182,22 +182,22 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     /**
      * 
      * @param user User address
-     * @param odyssey Odyssey ID that's being staked
+     * @param odyssey_id Odyssey ID that's being staked
      * @param amount_staked Amount being staked
      * @param token Token used (MOM or DAD) 
      * @param total_staked Total being staked by the user on the Odyssey
      */
-    event Stake(address user, uint256 odyssey, uint256 amount_staked, Token token, uint256 total_staked);
+    event Stake(address indexed user, uint256 indexed odyssey_id, uint256 amount_staked, Token token, uint256 total_staked);
 
     /**
      * 
      * @param user User address
-     * @param odyssey Odyssey ID that's being unstaked
+     * @param odyssey_id Odyssey ID that's being unstaked
      * @param amount_unstaked Amount unstaked
      * @param token Token used (MOM or DAD)
      * @param total_staked Total remained staked by the user on that Odyssey
      */
-    event Unstake(address user, uint256 odyssey, uint256 amount_unstaked, Token token, uint256 total_staked);
+    event Unstake(address indexed user, uint256 indexed odyssey_id, uint256 amount_unstaked, Token token, uint256 total_staked);
 
     /**
      * @notice list of staked odysseys
