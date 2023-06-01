@@ -131,6 +131,16 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     mapping (address => Unstaker[]) public unstakes;
 
     /**
+     * @notice list of staked odysseys
+     */
+    uint256[] public staked_odysseys;
+
+    /**
+     * @notice storage gap for upgrades
+     */
+    uint256[50] __gap;
+
+    /**
      * 
      * @param user User address
      * @param total_claimed Total tokens that were claimed
@@ -198,11 +208,6 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param total_staked Total remained staked by the user on that Odyssey
      */
     event Unstake(address indexed user, uint256 indexed odyssey_id, uint256 amount_unstaked, Token token, uint256 total_staked);
-
-    /**
-     * @notice list of staked odysseys
-     */
-    uint256[] public staked_odysseys;
 
     /**
      * @dev Initializer of the contract, is called when deploying
