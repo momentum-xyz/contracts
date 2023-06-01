@@ -28,7 +28,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     /**
      * @dev UUID Mask for compatibility
      */
-    uint256 private _UUIDMask = 0x80008000000000000000;
+    uint256 constant private _UUIDMask = 0x80008000000000000000;
 
     /**
      * @dev Custom base URI for the tokens
@@ -140,7 +140,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @param to Accountid of OdysseyNFT buyer   
     * @param tokenId The OdysseyId to transfer 
     */
-    function safeTransferFrom(address from, address to, uint256 tokenId) public whenNotPaused virtual override {
+    function safeTransferFrom(address from, address to, uint256 tokenId) public whenNotPaused virtual override(ERC721, IERC721) {
         safeTransferFrom(from, to, tokenId, "");
     }
 
