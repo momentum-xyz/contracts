@@ -2,11 +2,11 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../token/MomToken.sol";
+import "../nft/OdysseyNFT.sol";
 
 /** 
 * @title Staking Contract
@@ -366,13 +366,18 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         _claim_rewards(odyssey_id);
     }
 
+    modifier onlyMintedOdyssey(uint256 odyssey_id) {
+        require(OdysseyNFT(odyssey_nfts).exists(odyssey_id), "This Odyssey doesn't exists");
+        _;
+    }
+
     /**
      * @dev Stake the tokens into the Odyssey. If no staker or Odyssey exists, they will be created in the process.
      * @param odyssey_id Odyssey id to be staked on
      * @param amount Amount to be staked in the Odyssey
      * @param token Token that will be staked 
      */
-    function _stake(uint256 odyssey_id, uint256 amount, Token token) private {
+    function _stake(uint256 odyssey_id, uint256 amount, Token token) private onlyMintedOdyssey(odyssey_id) {
         require(amount > 0, "Amount cannot be 0");
         if(token == Token.DAD) {
             require(IERC20(dad_token).transferFrom(payable(msg.sender), address(this), amount));
@@ -448,7 +453,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param odyssey_id Odyssey id that will be unstaked
      * @param token token to be unstaked
      */
-    function _unstake(uint256 odyssey_id, Token token) private {
+    function _unstake(uint256 odyssey_id, Token token) private onlyMintedOdyssey(odyssey_id) {
         Staker storage staker = stakers[msg.sender];
         require(staker.user != address(0)
                 && staked_by_indexes[odyssey_id][msg.sender] != 0
@@ -510,7 +515,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be restaked
      * @param token Token that will be restaked
      */
-    function _restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) private {
+    function _restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) private onlyMintedOdyssey(to_odyssey_id) {
         require(amount > 0, "Amount cannot be 0");
         require(stakers[msg.sender].user != address(0), "Not a staker");
         require(staked_by_indexes[from_odyssey_id][msg.sender] > 0, "Not staking in that Odyssey");
@@ -612,7 +617,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      */
     function _claim_rewards(uint256 odyssey_id) private {
         require(odysseys[odyssey_id].total_rewards > 0, "No rewards available");
-        require(IERC721(odyssey_nfts).ownerOf(odyssey_id) == msg.sender, "Not owner of that Odyssey");
+        require(OdysseyNFT(odyssey_nfts).ownerOf(odyssey_id) == msg.sender, "Not owner of that Odyssey");
 
         uint256 amount = odysseys[odyssey_id].total_rewards;
         odysseys[odyssey_id].total_rewards = 0;
