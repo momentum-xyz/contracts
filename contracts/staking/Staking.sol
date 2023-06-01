@@ -419,7 +419,6 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             odyssey.staked_odysseys_index = staked_odysseys.length;
             staked_odysseys.push(odyssey_id);
         }
-        odyssey.total_stakers++;
         odyssey.total_staked_into += amount;
 
         uint256 index = staked_by_indexes[odyssey_id][msg.sender];
@@ -429,6 +428,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         }
         // The user is not staking on the odyssey
         if(index == 0) {
+            odyssey.total_stakers++;
             index = staked_by[odyssey_id].length;
             staked_by_indexes[odyssey_id][msg.sender] = index;
             staked_by[odyssey_id].push();
@@ -490,6 +490,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                 _staked_by.effective_timestamp = effective_timestamp;
                 _staked_by.timestamp = block.timestamp;
                 remaining_amount = _staked_by.total_amount;
+                total_staked -= amount;
             } else {
                 remove_staked_by(odyssey_id, msg.sender);
                 decrease_odyssey_total_stakers(odyssey_id, amount);
@@ -503,7 +504,6 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             remove_staked_by(odyssey_id, msg.sender);
             decrease_odyssey_total_stakers(odyssey_id, amount);
         }
-        total_staked -= amount;
         unstaker.push();
         token == Token.DAD
                     ?  unstaker[unstaker.length-1].dad_amount += amount
@@ -658,6 +658,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         Odyssey storage odyssey = odysseys[odyssey_id];
         odyssey.total_stakers--;
         odyssey.total_staked_into -= amount;
+        total_staked -= amount;
         if(odyssey.total_stakers == 0 && odyssey.total_rewards == 0) {
             uint256 last_item = staked_odysseys[staked_odysseys.length-1];
             odysseys[last_item].staked_odysseys_index = odyssey.staked_odysseys_index;
