@@ -493,7 +493,6 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                     ? _staked_by.dad_amount = 0
                     : _staked_by.mom_amount = 0;
                 _staked_by.total_amount -= amount;
-                staker.total_staked -= amount;
                 _staked_by.effective_timestamp = effective_timestamp;
                 _staked_by.timestamp = block.timestamp;
                 remaining_amount = _staked_by.total_amount;
