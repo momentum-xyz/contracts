@@ -47,10 +47,23 @@ describe("Staking", function () {
 
   describe("Initialize", function () {
     it("should set the right token contract addresses on initialize", async function () {
-      const { staking, momToken, dadToken } = await loadFixture(deployStaking);
+      const { staking, momToken, dadToken, odysseyNFT } = await loadFixture(deployStaking);
       
       expect(await staking.mom_token()).to.equal(momToken.address);
       expect(await staking.dad_token()).to.equal(dadToken.address);
+      expect(await staking.odyssey_nfts()).to.equal(odysseyNFT.address);
+    });
+    it("should fail if any contract is set to address zero", async function () {
+      const { momToken, dadToken, odysseyNFT } = await loadFixture(deployStaking);
+      
+      const Staking = await ethers.getContractFactory("Staking");
+      await expect(upgrades.deployProxy(Staking, [ethers.constants.AddressZero, dadToken.address, odysseyNFT.address],
+                                       { initializer: 'initialize', kind: 'uups'})).to.revertedWith("A contract address is invalid");
+      await expect(upgrades.deployProxy(Staking, [momToken.address, ethers.constants.AddressZero, odysseyNFT.address],
+                                       { initializer: 'initialize', kind: 'uups'})).to.revertedWith("A contract address is invalid");
+      await expect(upgrades.deployProxy(Staking, [momToken.address, dadToken.address, ethers.constants.AddressZero],
+                                       { initializer: 'initialize', kind: 'uups'})).to.revertedWith("A contract address is invalid");
+
     });
   });
   
@@ -732,39 +745,70 @@ describe("Staking", function () {
     it("should update MOM token contract if manager", async function () {
       const { staking, owner } = await loadFixture(deployStaking);
 
-      expect(await staking.connect(owner).mom_token()).not.eq(ethers.constants.AddressZero);
-
-      staking.connect(owner).update_mom_token_contract(ethers.constants.AddressZero)
+      staking.connect(owner).update_mom_token_contract(owner.address)
       
-      expect(await staking.connect(owner).mom_token()).eq(ethers.constants.AddressZero);
+      expect(await staking.connect(owner).mom_token()).eq(owner.address);
     });
 
     it("should revert update MOM token contract if not manager", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
       const manager_role = await staking.MANAGER_ROLE();
-      expect(await staking.connect(addr0).mom_token()).not.eq(ethers.constants.AddressZero);
 
-      await expect(staking.connect(addr0).update_mom_token_contract(ethers.constants.AddressZero)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
+      await expect(staking.connect(addr0).update_mom_token_contract(addr0.address))
+            .to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
+    });
+
+    it("should revert update MOM token contract if invalid address is set", async function () {
+      const { staking, owner } = await loadFixture(deployStaking);
+
+      await expect(staking.connect(owner).update_mom_token_contract(ethers.constants.AddressZero))
+            .to.be.revertedWith("Invalid contract address");
     });
     
     it("should update DAD token contract if manager", async function () {
       const { staking, owner } = await loadFixture(deployStaking);
       
-      expect(await staking.connect(owner).dad_token()).not.eq(ethers.constants.AddressZero);
+      staking.connect(owner).update_dad_token_contract(owner.address)
       
-      staking.connect(owner).update_dad_token_contract(ethers.constants.AddressZero)
-      
-      expect(await staking.connect(owner).dad_token()).eq(ethers.constants.AddressZero);
+      expect(await staking.connect(owner).dad_token()).eq(owner.address);
     });
     
     it("should revert update DAD token contract if not manager", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
       const manager_role = await staking.MANAGER_ROLE();
-      expect(await staking.connect(addr0).dad_token()).not.eq(ethers.constants.AddressZero);
       
-      await expect(staking.connect(addr0).update_dad_token_contract(ethers.constants.AddressZero)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
+      await expect(staking.connect(addr0).update_dad_token_contract(addr0.address)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
     });
     
+    it("should revert update DAD token contract if invalid address is set", async function () {
+      const { staking, owner } = await loadFixture(deployStaking);
+
+      await expect(staking.connect(owner).update_dad_token_contract(ethers.constants.AddressZero))
+            .to.be.revertedWith("Invalid contract address");
+    });
+
+    it("should update Odyssey NFT's contract if manager", async function () {
+      const { staking, owner } = await loadFixture(deployStaking);
+
+      staking.connect(owner).update_odyssey_nfts_contract(owner.address)
+      
+      expect(await staking.connect(owner).odyssey_nfts()).eq(owner.address);
+    });
+
+    it("should revert update Odyssey NFT's if not manager", async function () {
+      const { staking, addr0 } = await loadFixture(deployStaking);
+      const manager_role = await staking.MANAGER_ROLE();
+
+      await expect(staking.connect(addr0).update_odyssey_nfts_contract(addr0.address)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
+    });
+
+    it("should revert update Odyssey NFT's token contract if invalid address is set", async function () {
+      const { staking, owner } = await loadFixture(deployStaking);
+
+      await expect(staking.connect(owner).update_odyssey_nfts_contract(ethers.constants.AddressZero))
+            .to.be.revertedWith("Invalid contract address");
+    });
+
     it("should update Locking Period if manager", async function () {
       const { staking, owner } = await loadFixture(deployStaking);
       
@@ -801,24 +845,6 @@ describe("Staking", function () {
       expect(await staking.connect(addr0).rewards_timeout()).not.eq(0);
       
       await expect(staking.connect(addr0).update_rewards_timeout(minutes)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
-    });
-
-    it("should update Odyssey NFT's contract if manager", async function () {
-      const { staking, owner } = await loadFixture(deployStaking);
-
-      expect(await staking.connect(owner).odyssey_nfts()).not.eq(ethers.constants.AddressZero);
-
-      staking.connect(owner).update_odyssey_nfts_contract(ethers.constants.AddressZero)
-      
-      expect(await staking.connect(owner).odyssey_nfts()).eq(ethers.constants.AddressZero);
-    });
-
-    it("should revert update Odyssey NFT's if not manager", async function () {
-      const { staking, addr0 } = await loadFixture(deployStaking);
-      const manager_role = await staking.MANAGER_ROLE();
-      expect(await staking.connect(addr0).odyssey_nfts()).not.eq(ethers.constants.AddressZero);
-
-      await expect(staking.connect(addr0).update_odyssey_nfts_contract(ethers.constants.AddressZero)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
     });
 
     it("should get staked Odysseys list", async function () {

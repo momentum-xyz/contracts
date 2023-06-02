@@ -216,6 +216,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param _odyssey_nfts Odyssey NFT contract address
      */
     function initialize(address _mom_token, address _dad_token, address _odyssey_nfts) initializer public {
+        require(_mom_token != address(0) && _dad_token != address(0) && _odyssey_nfts != address(0),
+                "A contract address is invalid");
         mom_token = _mom_token;
         dad_token = _dad_token;
         odyssey_nfts = _odyssey_nfts;
@@ -238,6 +240,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param _mom_token new address for the MOM token contract
      */
     function update_mom_token_contract(address _mom_token) public onlyRole(MANAGER_ROLE) {
+        require(_mom_token != address(0), "Invalid contract address");
         mom_token = _mom_token;
     }
 
@@ -246,6 +249,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param _dad_token new address for the DAD token contract
      */
     function update_dad_token_contract(address _dad_token) public onlyRole(MANAGER_ROLE) {
+        require(_dad_token != address(0), "Invalid contract address");
         dad_token = _dad_token;
     }
 
@@ -254,6 +258,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param _odyssey_nfts new address for the Odyssey NFT's contract
      */
     function update_odyssey_nfts_contract(address _odyssey_nfts) public onlyRole(MANAGER_ROLE) {
+        require(_odyssey_nfts != address(0), "Invalid contract address");
         odyssey_nfts = _odyssey_nfts;
     }
 
