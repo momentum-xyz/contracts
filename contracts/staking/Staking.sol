@@ -474,8 +474,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         StakedBy storage _staked_by = staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]];
 
         token == Token.DAD
-                    ? require(_staked_by.dad_amount > 0)
-                    : require(_staked_by.mom_amount > 0);
+                    ? require(_staked_by.dad_amount > 0, "No DADs to unstake")
+                    : require(_staked_by.mom_amount > 0, "No MOMs to unstake");
 
         Unstaker[] storage unstaker = unstakes[msg.sender];
         uint256 amount = token == Token.DAD
