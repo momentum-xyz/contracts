@@ -630,6 +630,17 @@ describe("Staking", function () {
       await expect(staking.connect(addr0).restake(odyssey1_id, odyssey2_id, amount * 2 , Token.MOM)).to.revertedWith("Not enough staked");
     });
 
+    it("should revert when trying to restake on the same Odyssey", async function () {
+      const { staking, momToken, addr0, odyssey1_id } = await loadFixture(deployStaking);
+      const amount = 1000;
+
+      await momToken.mint(addr0.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey1_id, amount/2, Token.MOM);
+
+      await expect(staking.connect(addr0).restake(odyssey1_id, odyssey1_id, amount/2 , Token.MOM)).to.revertedWith("Cannot restake on the same Odyssey");
+    });
+
     it("should restake if there is enough MOM tokens staked", async function () {
       const { staking, momToken, addr0, odyssey1_id, odyssey2_id } = await loadFixture(deployStaking);
       const amount = 1000;

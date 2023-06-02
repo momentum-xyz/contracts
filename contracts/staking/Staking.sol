@@ -527,8 +527,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be restaked
      * @param token Token that will be restaked
      */
-    function _restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) private onlyMintedOdyssey(to_odyssey_id) {
+    function _restake(uint256 from_odyssey_id, uint256 to_odyssey_id, uint256 amount, Token token) private onlyMintedOdyssey(to_odyssey_id) onlyMintedOdyssey(from_odyssey_id) {
         require(amount > 0, "Amount cannot be 0");
+        require(from_odyssey_id != to_odyssey_id, "Cannot restake on the same Odyssey");
         require(stakers[msg.sender].user != address(0), "Not a staker");
         require(staked_by_indexes[from_odyssey_id][msg.sender] > 0, "Not staking in that Odyssey");
         
