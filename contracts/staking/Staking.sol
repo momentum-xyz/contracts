@@ -531,7 +531,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         require(from_odyssey_id != to_odyssey_id, "Cannot restake on the same Odyssey");
         require(stakers[msg.sender].user != address(0), "Not a staker");
         require(staked_by_indexes[from_odyssey_id][msg.sender] > 0, "Not staking in that Odyssey");
-        
+       
+        Staker storage staker = stakers[msg.sender];
         StakedBy storage staked_by_from = staked_by[from_odyssey_id][staked_by_indexes[from_odyssey_id][msg.sender]];
 
         uint current_timestamp = block.timestamp;
@@ -559,9 +560,12 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             staked_by_from.timestamp = current_timestamp;
             staked_by_from.effective_timestamp = effective_timestamp;
             total_staked_from = staked_by_from.total_amount;
-        }
-
-        // Restake in the 'to' Odyssey
+            total_staked -= amount;
+        } 
+        
+        staker.total_staked -= amount;
+        
+        // Restake in the 'to' Odyssey  
         _do_stake(to_odyssey_id, amount, token);
 
         uint256 total_staked_to = staked_by[to_odyssey_id][staked_by_indexes[to_odyssey_id][msg.sender]].total_amount;
