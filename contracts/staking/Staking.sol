@@ -502,8 +502,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                 decrease_odyssey_total_stakers(odyssey_id, amount);
             }
             token == Token.DAD
-                    ? staker.dad_amount = 0
-                    : staker.mom_amount = 0;
+                    ? staker.dad_amount -= amount
+                    : staker.mom_amount -= amount;
             staker.total_staked -= amount;
         } else {
             delete stakers[msg.sender];
