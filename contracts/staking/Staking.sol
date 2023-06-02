@@ -472,7 +472,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                 && staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]].user == staker.user,
                 "Invalid user or user not staking on that Odyssey");
         StakedBy storage _staked_by = staked_by[odyssey_id][staked_by_indexes[odyssey_id][msg.sender]];
-
+        Odyssey storage odyssey = odysseys[odyssey_id];
         token == Token.DAD
                     ? require(_staked_by.dad_amount > 0, "No DADs to unstake")
                     : require(_staked_by.mom_amount > 0, "No MOMs to unstake");
@@ -496,6 +496,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                 _staked_by.effective_timestamp = effective_timestamp;
                 _staked_by.timestamp = block.timestamp;
                 remaining_amount = _staked_by.total_amount;
+                odyssey.total_staked_into -= amount;
                 total_staked -= amount;
             } else {
                 remove_staked_by(odyssey_id, msg.sender);
@@ -532,6 +533,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         require(stakers[msg.sender].user != address(0), "Not a staker");
         require(staked_by_indexes[from_odyssey_id][msg.sender] > 0, "Not staking in that Odyssey");
        
+        Odyssey storage odyssey_from = odysseys[from_odyssey_id];
         Staker storage staker = stakers[msg.sender];
         StakedBy storage staked_by_from = staked_by[from_odyssey_id][staked_by_indexes[from_odyssey_id][msg.sender]];
 
@@ -560,9 +562,10 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             staked_by_from.timestamp = current_timestamp;
             staked_by_from.effective_timestamp = effective_timestamp;
             total_staked_from = staked_by_from.total_amount;
+            odyssey_from.total_staked_into -= amount;
             total_staked -= amount;
         } 
-        
+
         staker.total_staked -= amount;
         
         // Restake in the 'to' Odyssey  
