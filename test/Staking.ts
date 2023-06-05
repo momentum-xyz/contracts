@@ -89,6 +89,15 @@ describe("Staking", function () {
   });
 
   describe("Stake", function () {
+    it("should not be able to stake in a non existent Odyssey", async function () {
+      const { staking, momToken, addr0, odyssey1_id } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const ne_odyssey = 0;
+      await momToken.mint(addr0.address, amount);
+      
+      await expect(staking.connect(addr0).stake(ne_odyssey, amount, Token.MOM)).to.be.revertedWith("This Odyssey doesn't exists");
+    });
+
     it("should not be able to stake 0 tokens", async function () {
       const { staking, addr0, odyssey1_id } = await loadFixture(deployStaking);
       const amount = 0;
