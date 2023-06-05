@@ -10,6 +10,9 @@ const URI =  "ipfs://";
 const odyssey_1_id = "604472133179351442128897";
 const odyssey_2_id = "604472133179351442128898";
 
+// Avoid duplicated warning on StateUpdated event. (gone on V6)
+ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.ERROR);
+
 describe("deploy contract", function() {
   async function deployContract() {
     const [owner, addr1, addr2, addr3, addr4] = await ethers.getSigners();
@@ -105,8 +108,8 @@ describe("deploy contract", function() {
     it("should set the maximum amount of OdysseyNFT's which can be minted", async function () {
       const { OdysseyNFT, owner } = await loadFixture(deployContract);
   
-      await OdysseyNFT.connect(owner).setMaxTokens(1000);
-      // await OdysseyNFT.safeTransferFrom(owner.address, addr1.address, 1);
+      await expect(OdysseyNFT.connect(owner).setMaxTokens(1000)).to.emit(OdysseyNFT, "StateUpdated(string,uint256,uint256)")
+      .withArgs("Max Tokens", maxOdysseySupply, 1000);
       expect(await OdysseyNFT.maxTokens()).to.equal(1000);
     });
 
@@ -120,8 +123,8 @@ describe("deploy contract", function() {
     it("should set the maximum amount of OdysseyNFT's which can be minted per wallet", async function () {
       const { OdysseyNFT, owner } = await loadFixture(deployContract);
   
-      await OdysseyNFT.connect(owner).setMaxOdysseysPerWallet(10);
-      // await OdysseyNFT.safeTransferFrom(owner.address, addr1.address, 1);
+      await expect(OdysseyNFT.connect(owner).setMaxOdysseysPerWallet(10)).to.emit(OdysseyNFT, "StateUpdated(string,uint256,uint256)")
+      .withArgs("Max Odysseys per Wallet", maxTokensPerWallet, 10);
       expect(await OdysseyNFT.maxOdysseysPerWallet()).to.equal(10);
     });
   });
@@ -158,12 +161,17 @@ describe("deploy contract", function() {
   describe("token URI", async function () {
     it("should set the correct base URI", async function () {
       const { OdysseyNFT, owner, addr3, addr4 } = await loadFixture(deployContract);
+      const ipfs = "ipfs://";
+      const http = "http://";
+      const before = "ipfs://" + odyssey_1_id;
+      const after = "http://" + odyssey_2_id;
 
       await OdysseyNFT.connect(owner).safeMint(addr3.address);
-      await expect(await OdysseyNFT.tokenURI(odyssey_1_id)).to.equal("ipfs://" + odyssey_1_id);
-      await expect(await OdysseyNFT.connect(owner).setbaseURI("http://"));
+      await expect(await OdysseyNFT.tokenURI(odyssey_1_id)).to.equal(before);
+      await expect(await OdysseyNFT.connect(owner).setbaseURI("http://")).to.emit(OdysseyNFT, "StateUpdated(string,string,string)")
+            .withArgs("Base URI", ipfs, http);
       await OdysseyNFT.connect(owner).safeMint(addr4.address);
-      await expect(await OdysseyNFT.tokenURI(odyssey_2_id)).to.equal("http://" + odyssey_2_id);
+      await expect(await OdysseyNFT.tokenURI(odyssey_2_id)).to.equal(after);
     });
   });
 });

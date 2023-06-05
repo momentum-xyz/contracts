@@ -182,14 +182,12 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      */
     event RewardsClaimed(address indexed user, uint256 total_rewards_claimed);
 
-
     /**
      * 
      * @param timestamp Timestamp when the rewards were updated
      * @param blocknumber Blocknumber when the rewards were updated
      */
     event RewardsUpdated(uint timestamp, uint256 blocknumber);
-
 
     /**
      * 
@@ -200,6 +198,22 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param total_staked Total being staked by the user on the Odyssey
      */
     event Stake(address indexed user, uint256 indexed odyssey_id, uint256 amount_staked, Token token, uint256 total_staked);
+
+    /**
+     * 
+     * @param state State variable name
+     * @param from from value
+     * @param to to value
+     */
+    event StateUpdated(string indexed state, uint from, uint to);
+
+    /**
+     * @dev Overloading StateUpdated event to log addresses
+     * @param state State variable name
+     * @param from from value
+     * @param to to value
+     */
+    event StateUpdated(string indexed state, address from, address to);
 
     /**
      * 
@@ -243,7 +257,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      */
     function update_mom_token_contract(address _mom_token) public onlyRole(MANAGER_ROLE) {
         require(_mom_token != address(0), "Invalid contract address");
+        address old_value = mom_token;
         mom_token = _mom_token;
+        emit StateUpdated("MOM", old_value, mom_token);
     }
 
     /**
@@ -252,7 +268,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      */
     function update_dad_token_contract(address _dad_token) public onlyRole(MANAGER_ROLE) {
         require(_dad_token != address(0), "Invalid contract address");
+        address old_value = dad_token;
         dad_token = _dad_token;
+        emit StateUpdated("DAD", old_value, dad_token);
     }
 
     /**
@@ -261,7 +279,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      */
     function update_odyssey_nfts_contract(address _odyssey_nfts) public onlyRole(MANAGER_ROLE) {
         require(_odyssey_nfts != address(0), "Invalid contract address");
+        address old_value = odyssey_nfts;
         odyssey_nfts = _odyssey_nfts;
+        emit StateUpdated("Odyssey NFT", old_value, odyssey_nfts);
     }
 
     /**
@@ -301,7 +321,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param _locking_period new locking period
      */
     function update_locking_period(uint _locking_period) public onlyRole(MANAGER_ROLE) {
+        uint old_value = locking_period;
         locking_period = _locking_period;
+        emit StateUpdated("Locking Period", old_value, locking_period);
     }
 
     /**
@@ -309,7 +331,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param _rewards_timeout new rewards_timeout
      */
     function update_rewards_timeout(uint _rewards_timeout) public onlyRole(MANAGER_ROLE) {
+        uint old_value = rewards_timeout;
         rewards_timeout = _rewards_timeout;
+        emit StateUpdated("Rewards Timeout", old_value, rewards_timeout);
     }
 
     /**

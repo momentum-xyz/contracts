@@ -4,6 +4,9 @@ import { ethers, upgrades } from "hardhat";
 import { Staking } from "../typechain-types";
 import { Token, utils } from "./utils";
 
+// Avoid duplicated warning on StateUpdated event. (gone on V6)
+ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.ERROR);
+
 describe("Staking", function () {
   async function deployStaking() {
     const initialSupply = 1000;
@@ -754,9 +757,10 @@ describe("Staking", function () {
 
   describe("Utilities", function () {
     it("should update MOM token contract if manager", async function () {
-      const { staking, owner } = await loadFixture(deployStaking);
+      const { staking, momToken, owner } = await loadFixture(deployStaking);
 
-      staking.connect(owner).update_mom_token_contract(owner.address)
+      await expect(staking.connect(owner).update_mom_token_contract(owner.address)).to.emit(staking, "StateUpdated(string,address,address)")
+      .withArgs("MOM", momToken.address, owner.address);
       
       expect(await staking.connect(owner).mom_token()).eq(owner.address);
     });
@@ -777,9 +781,10 @@ describe("Staking", function () {
     });
     
     it("should update DAD token contract if manager", async function () {
-      const { staking, owner } = await loadFixture(deployStaking);
+      const { staking, dadToken, owner } = await loadFixture(deployStaking);
       
-      staking.connect(owner).update_dad_token_contract(owner.address)
+      await expect(staking.connect(owner).update_dad_token_contract(owner.address)).to.emit(staking, "StateUpdated(string,address,address)")
+      .withArgs("DAD", dadToken.address, owner.address);
       
       expect(await staking.connect(owner).dad_token()).eq(owner.address);
     });
@@ -799,9 +804,10 @@ describe("Staking", function () {
     });
 
     it("should update Odyssey NFT's contract if manager", async function () {
-      const { staking, owner } = await loadFixture(deployStaking);
+      const { staking, odysseyNFT, owner } = await loadFixture(deployStaking);
 
-      staking.connect(owner).update_odyssey_nfts_contract(owner.address)
+      await expect(staking.connect(owner).update_odyssey_nfts_contract(owner.address)).to.emit(staking, "StateUpdated(string,address,address)")
+      .withArgs("Odyssey NFT", odysseyNFT.address, owner.address);
       
       expect(await staking.connect(owner).odyssey_nfts()).eq(owner.address);
     });
@@ -825,7 +831,8 @@ describe("Staking", function () {
       
       expect(await staking.connect(owner).locking_period()).not.eq(ethers.constants.AddressZero);
       
-      staking.connect(owner).update_locking_period(ethers.constants.AddressZero)
+      await expect(staking.connect(owner).update_locking_period(ethers.constants.AddressZero)).to.emit(staking, "StateUpdated(string,uint256,uint256)")
+      .withArgs("Locking Period", time.duration.days(7), ethers.constants.AddressZero);
       
       expect(await staking.connect(owner).locking_period()).eq(ethers.constants.AddressZero);
     });
@@ -843,7 +850,8 @@ describe("Staking", function () {
       const minutes = time.duration.minutes(4);
       expect(await staking.connect(owner).rewards_timeout()).not.eq(0);
       
-      staking.connect(owner).update_rewards_timeout(minutes);
+      await expect(staking.connect(owner).update_rewards_timeout(minutes)).to.emit(staking, "StateUpdated(string,uint256,uint256)")
+            .withArgs("Rewards Timeout", time.duration.minutes(3), minutes);
       
       expect(await staking.connect(owner).rewards_timeout()).eq(minutes);
     });

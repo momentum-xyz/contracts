@@ -46,6 +46,22 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
      */
     uint256 public odysseys = 0;
 
+    /**
+     * 
+     * @param state State variable name
+     * @param from from value
+     * @param to to value
+     */
+    event StateUpdated(string indexed state, uint256 from, uint256 to);
+
+    /**
+     * @dev Overloading StateUpdated event to log string
+     * @param state State variable name
+     * @param from from value
+     * @param to to value
+     */
+    event StateUpdated(string indexed state, string from, string to);
+
 /**
  * @dev Constructor of the contract
  * @param name_ ERC712 name
@@ -85,7 +101,9 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @param maxTokens_ Maximum limit for number of odysseys
     */
     function setMaxTokens(uint256 maxTokens_) public onlyOwner {
+        uint256 old_value = _maxTokens;
         _maxTokens = maxTokens_;
+        emit StateUpdated("Max Tokens", old_value, _maxTokens);
     }
 
     /**
@@ -101,7 +119,9 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @param maxOdysseysPerWallet_ Maximum limit for number of odysseys per wallet
     */
     function setMaxOdysseysPerWallet(uint256 maxOdysseysPerWallet_) public onlyOwner {
+        uint256 old_value = _maxOdysseysPerWallet;
         _maxOdysseysPerWallet = maxOdysseysPerWallet_;
+        emit StateUpdated("Max Odysseys per Wallet", old_value, _maxOdysseysPerWallet);
     }
 
     /**
@@ -149,7 +169,9 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @param baseURI baseURI
     */    
     function setbaseURI(string memory baseURI) public onlyOwner {
+        string memory old_value = _customBaseURI;
         _customBaseURI = baseURI;
+        emit StateUpdated("Base URI", old_value, _customBaseURI);
     }
     
     /**
