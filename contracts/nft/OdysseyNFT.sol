@@ -168,7 +168,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @notice Sets the base URI of NFT metadata folder
     * @param baseURI baseURI
     */    
-    function setbaseURI(string memory baseURI) public onlyOwner {
+    function setbaseURI(string calldata baseURI) public onlyOwner {
         string memory old_value = _customBaseURI;
         _customBaseURI = baseURI;
         emit StateUpdated("Base URI", old_value, _customBaseURI);
