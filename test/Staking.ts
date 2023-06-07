@@ -765,114 +765,45 @@ describe("Staking", function () {
   });
 
   describe("Utilities", function () {
-    it("should update MOM token contract if manager", async function () {
-      const { staking, momToken, owner } = await loadFixture(deployStaking);
-
-      await expect(staking.connect(owner).update_mom_token_contract(owner.address)).to.emit(staking, "StateUpdated(string,address,address)")
-      .withArgs("MOM", momToken.address, owner.address);
-      
-      expect(await staking.connect(owner).mom_token()).eq(owner.address);
-    });
-
-    it("should revert update MOM token contract if not manager", async function () {
-      const { staking, addr0 } = await loadFixture(deployStaking);
-      const manager_role = await staking.MANAGER_ROLE();
-
-      await expect(staking.connect(addr0).update_mom_token_contract(addr0.address))
-            .to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
-    });
-
-    it("should revert update MOM token contract if invalid address is set", async function () {
-      const { staking, owner } = await loadFixture(deployStaking);
-
-      await expect(staking.connect(owner).update_mom_token_contract(ethers.constants.AddressZero))
-            .to.be.revertedWith("Invalid contract address");
-    });
-    
-    it("should update DAD token contract if manager", async function () {
-      const { staking, dadToken, owner } = await loadFixture(deployStaking);
-      
-      await expect(staking.connect(owner).update_dad_token_contract(owner.address)).to.emit(staking, "StateUpdated(string,address,address)")
-      .withArgs("DAD", dadToken.address, owner.address);
-      
-      expect(await staking.connect(owner).dad_token()).eq(owner.address);
-    });
-    
-    it("should revert update DAD token contract if not manager", async function () {
-      const { staking, addr0 } = await loadFixture(deployStaking);
-      const manager_role = await staking.MANAGER_ROLE();
-      
-      await expect(staking.connect(addr0).update_dad_token_contract(addr0.address)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
-    });
-    
-    it("should revert update DAD token contract if invalid address is set", async function () {
-      const { staking, owner } = await loadFixture(deployStaking);
-
-      await expect(staking.connect(owner).update_dad_token_contract(ethers.constants.AddressZero))
-            .to.be.revertedWith("Invalid contract address");
-    });
-
-    it("should update Odyssey NFT's contract if manager", async function () {
-      const { staking, odysseyNFT, owner } = await loadFixture(deployStaking);
-
-      await expect(staking.connect(owner).update_odyssey_nfts_contract(owner.address)).to.emit(staking, "StateUpdated(string,address,address)")
-      .withArgs("Odyssey NFT", odysseyNFT.address, owner.address);
-      
-      expect(await staking.connect(owner).odyssey_nfts()).eq(owner.address);
-    });
-
-    it("should revert update Odyssey NFT's if not manager", async function () {
-      const { staking, addr0 } = await loadFixture(deployStaking);
-      const manager_role = await staking.MANAGER_ROLE();
-
-      await expect(staking.connect(addr0).update_odyssey_nfts_contract(addr0.address)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
-    });
-
-    it("should revert update Odyssey NFT's token contract if invalid address is set", async function () {
-      const { staking, owner } = await loadFixture(deployStaking);
-
-      await expect(staking.connect(owner).update_odyssey_nfts_contract(ethers.constants.AddressZero))
-            .to.be.revertedWith("Invalid contract address");
-    });
-
-    it("should update Locking Period if manager", async function () {
+    it("should update Locking Period if admin", async function () {
       const { staking, owner } = await loadFixture(deployStaking);
       
       expect(await staking.connect(owner).locking_period()).not.eq(ethers.constants.AddressZero);
       
-      await expect(staking.connect(owner).update_locking_period(ethers.constants.AddressZero)).to.emit(staking, "StateUpdated(string,uint256,uint256)")
+      await expect(staking.connect(owner).update_locking_period(ethers.constants.AddressZero)).to.emit(staking, "StateUpdated")
       .withArgs("Locking Period", time.duration.days(7), ethers.constants.AddressZero);
       
       expect(await staking.connect(owner).locking_period()).eq(ethers.constants.AddressZero);
     });
     
-    it("should revert update Locking Period if not manager", async function () {
+    it("should revert update Locking Period if not admin", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
-      const manager_role = await staking.MANAGER_ROLE();
+      const admin_role = await staking.DEFAULT_ADMIN_ROLE();
+
       expect(await staking.connect(addr0).locking_period()).not.eq(ethers.constants.AddressZero);
       
-      await expect(staking.connect(addr0).update_locking_period(ethers.constants.AddressZero)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
+      await expect(staking.connect(addr0).update_locking_period(ethers.constants.AddressZero)).to.be.revertedWith(utils.rolesRevertString(addr0.address, admin_role));
     });
 
-    it("should update Rewards Timeout if manager", async function () {
+    it("should update Rewards Timeout if admin", async function () {
       const { staking, owner } = await loadFixture(deployStaking);
       const minutes = time.duration.minutes(4);
       expect(await staking.connect(owner).rewards_timeout()).not.eq(0);
       
-      await expect(staking.connect(owner).update_rewards_timeout(minutes)).to.emit(staking, "StateUpdated(string,uint256,uint256)")
+      await expect(staking.connect(owner).update_rewards_timeout(minutes)).to.emit(staking, "StateUpdated")
             .withArgs("Rewards Timeout", time.duration.minutes(3), minutes);
       
       expect(await staking.connect(owner).rewards_timeout()).eq(minutes);
     });
     
-    it("should revert update Rewards Timeout if not manager", async function () {
+    it("should revert update Rewards Timeout if not admin", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
-      const manager_role = await staking.MANAGER_ROLE();
       const minutes = time.duration.minutes(4);
+      const admin_role = await staking.DEFAULT_ADMIN_ROLE();
 
       expect(await staking.connect(addr0).rewards_timeout()).not.eq(0);
       
-      await expect(staking.connect(addr0).update_rewards_timeout(minutes)).to.be.revertedWith(utils.rolesRevertString(addr0.address, manager_role));
+      await expect(staking.connect(addr0).update_rewards_timeout(minutes)).to.be.revertedWith(utils.rolesRevertString(addr0.address, admin_role));
     });
 
     it("should get staked Odysseys list", async function () {

@@ -208,14 +208,6 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     event StateUpdated(string indexed state, uint from, uint to);
 
     /**
-     * @dev Overloading StateUpdated event to log addresses
-     * @param state State variable name
-     * @param from from value
-     * @param to to value
-     */
-    event StateUpdated(string indexed state, address from, address to);
-
-    /**
      * 
      * @param user User address
      * @param odyssey_id Odyssey ID that's being unstaked
@@ -250,40 +242,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         onlyRole(DEFAULT_ADMIN_ROLE)
         override
     {}
-
-    /**
-     * @dev Updates the MOM token contract
-     * @param _mom_token new address for the MOM token contract
-     */
-    function update_mom_token_contract(address _mom_token) public onlyRole(MANAGER_ROLE) {
-        require(_mom_token != address(0), "Invalid contract address");
-        address old_value = mom_token;
-        mom_token = _mom_token;
-        emit StateUpdated("MOM", old_value, mom_token);
-    }
-
-    /**
-     * @dev Updates the DAD token contract
-     * @param _dad_token new address for the DAD token contract
-     */
-    function update_dad_token_contract(address _dad_token) public onlyRole(MANAGER_ROLE) {
-        require(_dad_token != address(0), "Invalid contract address");
-        address old_value = dad_token;
-        dad_token = _dad_token;
-        emit StateUpdated("DAD", old_value, dad_token);
-    }
-
-    /**
-     * @dev Updates the Odyssey NFT's contract
-     * @param _odyssey_nfts new address for the Odyssey NFT's contract
-     */
-    function update_odyssey_nfts_contract(address _odyssey_nfts) public onlyRole(MANAGER_ROLE) {
-        require(_odyssey_nfts != address(0), "Invalid contract address");
-        address old_value = odyssey_nfts;
-        odyssey_nfts = _odyssey_nfts;
-        emit StateUpdated("Odyssey NFT", old_value, odyssey_nfts);
-    }
-
+    
     /**
      * @dev Update the staking rewards of the users
      * @param addresses list of addresses to update
@@ -320,7 +279,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @dev Update the locking period to claim rewards
      * @param _locking_period new locking period
      */
-    function update_locking_period(uint _locking_period) public onlyRole(MANAGER_ROLE) {
+    function update_locking_period(uint _locking_period) public onlyRole(DEFAULT_ADMIN_ROLE) {
         uint old_value = locking_period;
         locking_period = _locking_period;
         emit StateUpdated("Locking Period", old_value, locking_period);
@@ -330,7 +289,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @dev Update the rewards_timeout to update calculated rewards
      * @param _rewards_timeout new rewards_timeout
      */
-    function update_rewards_timeout(uint _rewards_timeout) public onlyRole(MANAGER_ROLE) {
+    function update_rewards_timeout(uint _rewards_timeout) public onlyRole(DEFAULT_ADMIN_ROLE) {
         uint old_value = rewards_timeout;
         rewards_timeout = _rewards_timeout;
         emit StateUpdated("Rewards Timeout", old_value, rewards_timeout);
