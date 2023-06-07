@@ -722,10 +722,14 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint actual_effective_timestamp = effective_timestamp > last_rewards_calculation
                                             ? effective_timestamp
                                             : last_rewards_calculation;
-        uint new_effective_timestamp = is_stake
-                                        ? ( (current_amount * actual_effective_timestamp) + (amount * current_timestamp) ) / (current_amount + amount)
-                                        : ( (current_amount * actual_effective_timestamp) - (amount * current_timestamp) ) / (current_amount - amount);
+        uint256 effective_current_amount = (current_amount * actual_effective_timestamp);
+        uint256 effective_amount = (amount * current_timestamp);
+        uint new_effective_timestamp = ( effective_current_amount + effective_amount ) / (current_amount + amount);
+        if(!is_stake) {
+            new_effective_timestamp = effective_current_amount > effective_amount
+                                      ? (effective_current_amount - effective_amount) / (current_amount - amount)
+                                      : (effective_amount - effective_current_amount) / (current_amount - amount);
+        }
         return new_effective_timestamp;
     }
-
 }
