@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@openzeppelin/cli": "^2.8.2",
-    "@openzeppelin/contracts": "^4.8.1"
+    "@openzeppelin/contracts": "^4.9.1"
   },
   "engines": {
     "node": ">=18.12.0"
