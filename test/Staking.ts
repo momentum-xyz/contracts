@@ -13,8 +13,6 @@ describe("Staking", function () {
     const [owner, addr0, addr1, addr2] = await ethers.getSigners();
     const name = 'Odyssey_NFT';
     const symbol = 'ODS';
-    const maxOdysseySupply = 21000;
-    const maxTokensPerWallet = 150;
     const URI =  "ipfs://";
 
     const MOMToken = await ethers.getContractFactory("MOMToken");
@@ -24,7 +22,7 @@ describe("Staking", function () {
     const dadToken = await DADToken.deploy();
 
     const OdysseyNFT = await ethers.getContractFactory("OdysseyNFT");
-    const odysseyNFT = await OdysseyNFT.deploy(name, symbol, maxOdysseySupply, maxTokensPerWallet, URI);
+    const odysseyNFT = await OdysseyNFT.deploy(name, symbol, URI);
 
     await momToken.deployed();
     await dadToken.deployed();
