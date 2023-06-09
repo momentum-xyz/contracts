@@ -41,6 +41,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     struct Staker {
         address user;
         uint256 total_rewards;
+        uint256 dad_rewards;
+        uint256 mom_rewards;
         uint256 total_staked;
         uint256 dad_amount;
         uint256 mom_amount;
@@ -54,6 +56,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 total_staked_into;
         uint256 total_stakers;
         uint256 total_rewards;
+        uint256 dad_rewards;
+        uint256 mom_rewards;
         uint256 staked_odysseys_index;
     }
 
@@ -92,6 +96,11 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @notice Odyssey NFT's token address
      */
     address public odyssey_nfts;
+
+    /**
+     * @notice Treasury address
+     */
+    address public treasury;
 
     /**
      * @notice Total number of tokens staked.
@@ -229,12 +238,13 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param _dad_token DAD Token contract address
      * @param _odyssey_nfts Odyssey NFT contract address
      */
-    function initialize(address _mom_token, address _dad_token, address _odyssey_nfts) initializer public {
-        require(_mom_token != address(0) && _dad_token != address(0) && _odyssey_nfts != address(0),
+    function initialize(address _mom_token, address _dad_token, address _odyssey_nfts, address _treasury) initializer public {
+        require(_mom_token != address(0) && _dad_token != address(0) && _odyssey_nfts != address(0) && _treasury != address(0),
                 "A contract address is invalid");
         mom_token = _mom_token;
         dad_token = _dad_token;
         odyssey_nfts = _odyssey_nfts;
+        treasury = _treasury;
         locking_period = 7 days;
         rewards_timeout = 3 minutes;
         __AccessControl_init();
@@ -248,34 +258,49 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         onlyRole(DEFAULT_ADMIN_ROLE)
         override
     {}
-    
+
     /**
      * @dev Update the staking rewards of the users
      * @param addresses list of addresses to update
-     * @param stakers_amounts amount that will be updated per user
+     * @param stakers_amount_mom mom amount that will be updated per user
+     * @param stakers_amount_dad dad amount that will be updated per user
      * @param odysseys_ids list of odysseys id to update
-     * @param odysseys_amounts amount that will be updated per odyssey
+     * @param odysseys_amount_mom mom amount that will be updated per odyssey
+     * @param odysseys_amount_dad dad amount that will be updated per odyssey
      * @param timestamp timestamp of the reward calculation
      */
-    function update_rewards(address[] calldata addresses, uint256[] calldata stakers_amounts, uint256[] calldata odysseys_ids, uint256[] calldata odysseys_amounts, uint timestamp ) public onlyRole(MANAGER_ROLE) {
+    function update_rewards(address[] memory addresses, uint256[] memory stakers_amount_mom, uint256[] memory stakers_amount_dad,
+                            uint256[] memory odysseys_ids, uint256[] memory odysseys_amount_mom, uint256[] memory odysseys_amount_dad,
+                            uint256 treasury_ammount,
+                            uint timestamp ) public onlyRole(MANAGER_ROLE) {
         require(addresses.length > 0
-                && stakers_amounts.length > 0
+                && stakers_amount_mom.length > 0
+                && stakers_amount_dad.length > 0
                 && odysseys_ids.length > 0
-                && odysseys_amounts.length > 0,
+                && odysseys_amount_mom.length > 0
+                && odysseys_amount_dad.length > 0,
                 "Invalid Input");
-        require(addresses.length == stakers_amounts.length
-                && odysseys_ids.length == odysseys_amounts.length,
+        require(addresses.length == stakers_amount_mom.length
+                && addresses.length == stakers_amount_dad.length
+                && odysseys_ids.length == odysseys_amount_mom.length
+                && odysseys_ids.length == odysseys_amount_dad.length,
                 "Lengths don't match");
         require(timestamp < block.timestamp, "Invalid timestamp");
         require(block.timestamp - timestamp < rewards_timeout, "Timeout");
 
         for(uint i = 0; i < addresses.length; i++) {
-            stakers[addresses[i]].total_rewards += stakers_amounts[i];
+            stakers[addresses[i]].dad_rewards += stakers_amount_dad[i];
+            stakers[addresses[i]].mom_rewards += stakers_amount_mom[i];
+            stakers[addresses[i]].total_rewards += (stakers_amount_dad[i] + stakers_amount_mom[i]);
         }
 
         for(uint i = 0; i < odysseys_ids.length; i++) {
-            odysseys[odysseys_ids[i]].total_rewards += odysseys_amounts[i];
+            odysseys[odysseys_ids[i]].dad_rewards += odysseys_amount_dad[i];
+            odysseys[odysseys_ids[i]].mom_rewards += odysseys_amount_mom[i];
+            odysseys[odysseys_ids[i]].total_rewards += (odysseys_amount_dad[i] + odysseys_amount_mom[i]);
         }
+
+        MOMToken(mom_token).mint(treasury, treasury_ammount);
 
         last_rewards_calculation = block.timestamp;
         emit RewardsUpdated(last_rewards_calculation, block.number);

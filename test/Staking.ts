@@ -10,7 +10,7 @@ ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.ERROR);
 describe("Staking", function () {
   async function deployStaking() {
     const initialSupply = 1000;
-    const [owner, addr0, addr1, addr2] = await ethers.getSigners();
+    const [owner, addr0, addr1, addr2, treasury] = await ethers.getSigners();
     const name = 'Odyssey_NFT';
     const symbol = 'ODS';
     const URI =  "ipfs://";
@@ -43,26 +43,30 @@ describe("Staking", function () {
     await odysseyNFT.safeMint(addr0.address);
     const odyssey2_id = await odysseyNFT.callStatic.currentId();
 
-    return { staking, momToken, dadToken, odysseyNFT, owner, addr0, addr1, addr2, odyssey1_id, odyssey2_id };
+    return { staking, momToken, dadToken, odysseyNFT, owner, addr0, addr1, addr2, treasury, odyssey1_id, odyssey2_id };
   }
 
   describe("Initialize", function () {
     it("should set the right token contract addresses on initialize", async function () {
-      const { staking, momToken, dadToken, odysseyNFT } = await loadFixture(deployStaking);
+      const { staking, momToken, dadToken, odysseyNFT,treasury } = await loadFixture(deployStaking);
       
       expect(await staking.mom_token()).to.equal(momToken.address);
       expect(await staking.dad_token()).to.equal(dadToken.address);
       expect(await staking.odyssey_nfts()).to.equal(odysseyNFT.address);
+      expect(await staking.treasury()).to.equal(treasury.address);
     });
+
     it("should fail if any contract is set to address zero", async function () {
-      const { momToken, dadToken, odysseyNFT } = await loadFixture(deployStaking);
+      const { momToken, dadToken, odysseyNFT, treasury } = await loadFixture(deployStaking);
       
       const Staking = await ethers.getContractFactory("Staking");
-      await expect(upgrades.deployProxy(Staking, [ethers.constants.AddressZero, dadToken.address, odysseyNFT.address],
+      await expect(upgrades.deployProxy(Staking, [ethers.constants.AddressZero, dadToken.address, odysseyNFT.address, treasury.address],
                                        { initializer: 'initialize', kind: 'uups'})).to.revertedWith("A contract address is invalid");
-      await expect(upgrades.deployProxy(Staking, [momToken.address, ethers.constants.AddressZero, odysseyNFT.address],
+      await expect(upgrades.deployProxy(Staking, [momToken.address, ethers.constants.AddressZero, odysseyNFT.address, treasury.address],
                                        { initializer: 'initialize', kind: 'uups'})).to.revertedWith("A contract address is invalid");
-      await expect(upgrades.deployProxy(Staking, [momToken.address, dadToken.address, ethers.constants.AddressZero],
+      await expect(upgrades.deployProxy(Staking, [momToken.address, dadToken.address, ethers.constants.AddressZero, treasury.address],
+                                       { initializer: 'initialize', kind: 'uups'})).to.revertedWith("A contract address is invalid");
+      await expect(upgrades.deployProxy(Staking, [momToken.address, dadToken.address, odysseyNFT.address, ethers.constants.AddressZero],
                                        { initializer: 'initialize', kind: 'uups'})).to.revertedWith("A contract address is invalid");
 
     });
@@ -556,7 +560,7 @@ describe("Staking", function () {
       await momToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey1_id, amount, Token.MOM);
 
-      await staking.update_rewards([addr0.address], [rewards], [odyssey1_id], [rewards], await time.latest());
+      await staking.update_rewards([addr0.address], [rewards], [rewards], [odyssey1_id], [rewards], [rewards], rewards, await time.latest());
 
       await expect(staking.connect(addr0)["claim_rewards(uint256)"](odyssey1_id)).to.be.revertedWith("Not owner of that Odyssey");
       await expect(await momToken.balanceOf(addr0.address)).to.be.eq(0);
@@ -567,14 +571,14 @@ describe("Staking", function () {
       const amount = 1000;
       const timeout = await time.latest() - time.duration.minutes(4);
 
-      await expect(staking.update_rewards([addr0.address], [amount], [1], [1], timeout)).to.revertedWith("Timeout");
+      await expect(staking.update_rewards([addr0.address], [amount], [amount], [1], [1], [1], amount, timeout)).to.revertedWith("Timeout");
     });
 
     it("should revert when updating rewards receives an empty list in inputs", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
 
-      await expect(staking.update_rewards([addr0.address], [amount], [], [1], await time.latest())).to.revertedWith("Invalid Input");
+      await expect(staking.update_rewards([addr0.address], [amount], [amount], [], [1], [1], amount, await time.latest())).to.revertedWith("Invalid Input");
     });
 
     it("should revert when updating rewards receives a future timestamp", async function () {
@@ -582,26 +586,28 @@ describe("Staking", function () {
       const amount = 1000;
       const timeout = await time.latest() + time.duration.minutes(4);
 
-      await expect(staking.update_rewards([addr0.address], [amount], [1], [1], timeout)).to.revertedWith("Invalid timestamp");
+      await expect(staking.update_rewards([addr0.address], [amount], [amount], [1], [1], [1], amount, timeout)).to.revertedWith("Invalid timestamp");
     });
 
     it("should revert when updating rewards receives not even lists lengths", async function () {
       const { staking, addr0 } = await loadFixture(deployStaking);
       const amount = 1000;
 
-      await expect(staking.update_rewards([addr0.address], [amount], [1,2], [1], await time.latest())).to.revertedWith("Lengths don't match");
-      await expect(staking.update_rewards([addr0.address], [amount, amount], [1], [1], await time.latest())).to.revertedWith("Lengths don't match");
+      await expect(staking.update_rewards([addr0.address], [amount], [amount], [1,2], [1], [1], amount, await time.latest())).to.revertedWith("Lengths don't match");
+      await expect(staking.update_rewards([addr0.address], [amount, amount], [amount, amount], [1], [1], [1], amount, await time.latest())).to.revertedWith("Lengths don't match");
     });
 
-    it("should update rewards", async function () {
-      const { staking, momToken, addr0, odyssey1_id } = await loadFixture(deployStaking);
+    it("should update rewards and mint to treasury", async function () {
+      const { staking, momToken, addr0, odyssey1_id, treasury } = await loadFixture(deployStaking);
       const amount = 1000;
 
       await momToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey1_id, amount, Token.MOM);
 
-      await expect(staking.update_rewards([addr0.address], [amount], [odyssey1_id], [amount], await time.latest())).to.emit(staking, "RewardsUpdated").withArgs(await (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp, await ethers.provider.getBlockNumber());
+      await expect(await momToken.balanceOf(treasury.address)).to.equal(0);
+      await expect(staking.update_rewards([addr0.address], [amount], [amount], [odyssey1_id], [amount], [amount], amount, await time.latest())).to.emit(staking, "RewardsUpdated").withArgs(await (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp, await ethers.provider.getBlockNumber());
+      await expect(await momToken.balanceOf(treasury.address)).to.equal(amount);
     });
 
     it("should claim odyssey rewards when user is owner and have rewards", async function () {
@@ -613,10 +619,10 @@ describe("Staking", function () {
       await momToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey2_id, amount, Token.MOM);
 
-      await staking.update_rewards([addr0.address], [rewards], [odyssey2_id], [rewards], await time.latest());
+      await staking.update_rewards([addr0.address], [rewards], [rewards], [odyssey2_id], [rewards], [rewards], rewards, await time.latest());
 
-      await expect(await staking.connect(addr0)["claim_rewards(uint256)"](odyssey2_id)).to.emit(staking, "OdysseyRewardsClaimed").withArgs(odyssey2_id, rewards);
-      await expect(await momToken.balanceOf(addr0.address)).to.be.eq(rewards);
+      await expect(await staking.connect(addr0)["claim_rewards(uint256)"](odyssey2_id)).to.emit(staking, "OdysseyRewardsClaimed").withArgs(odyssey2_id, rewards*2);
+      await expect(await momToken.balanceOf(addr0.address)).to.be.eq(rewards*2);
     });
 
     it("should claim rewards when user has staking rewards", async function () {
@@ -628,10 +634,10 @@ describe("Staking", function () {
       await momToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey1_id, amount, Token.MOM);
 
-      await staking.update_rewards([addr0.address], [rewards], [odyssey1_id], [rewards], await time.latest());
+      await staking.update_rewards([addr0.address], [rewards], [rewards], [odyssey1_id], [rewards], [rewards], rewards, await time.latest());
 
-      await expect(await staking.connect(addr0)["claim_rewards()"]()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, rewards);
-      await expect(await momToken.balanceOf(addr0.address)).to.be.eq(rewards);
+      await expect(await staking.connect(addr0)["claim_rewards()"]()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, rewards*2);
+      await expect(await momToken.balanceOf(addr0.address)).to.be.eq(rewards*2);
     });
   });
 
