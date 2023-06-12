@@ -20,14 +20,15 @@ describe("DADToken", function () {
       
       expect(await dadToken.hasRole(dadToken.DEFAULT_ADMIN_ROLE(), owner.address)).to.equal(true);
       expect(await dadToken.hasRole(dadToken.BURNER_ROLE(), owner.address)).to.equal(true);
+      expect(await dadToken.hasRole(dadToken.MINTER_ROLE(), owner.address)).to.equal(true);
     });
   });
 
   describe("Roles", function () {
-    it("Should not mint tokens if address doesn't have the Admin role", async function () {
+    it("Should not mint tokens if address doesn't have the Minter role", async function () {
         const { dadToken, owner, addr0 } = await loadFixture(deployDadTokenOneKSupply);
         const amount = 10;
-        const minterRole = await dadToken.DEFAULT_ADMIN_ROLE();
+        const minterRole = await dadToken.MINTER_ROLE();
   
         await expect(dadToken.connect(addr0).mint(addr0.address, amount)).to.be.revertedWith(utils.rolesRevertString(addr0.address, minterRole));
         await expect(dadToken.mint(addr0.address, amount)).to.emit(dadToken, "Transfer").withArgs(ethers.constants.AddressZero, addr0.address, amount);
