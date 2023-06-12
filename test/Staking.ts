@@ -36,6 +36,7 @@ describe("Staking", function () {
     // Granting the right permissions for the staking contract
     // Transfer DAD token (stake, unstake) and mint MOM token (rewards)
     await dadToken.grantRole(dadToken.TRANSFER_ROLE(), staking.address);
+    await dadToken.grantRole(dadToken.MINTER_ROLE(), staking.address);
     await momToken.grantRole(momToken.MINTER_ROLE(), staking.address);
 
     await odysseyNFT.safeMint(owner.address);
@@ -268,13 +269,13 @@ describe("Staking", function () {
       await dadToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey1_id, amount, Token.MOM);
       await staking.connect(addr0).stake(odyssey1_id, amount, Token.DAD);
-
+      
       await expect(await staking.connect(addr0).unstake(odyssey1_id, Token.MOM)).to.emit(staking, "Unstake").withArgs(addr0.address, odyssey1_id, amount, Token.MOM, amount);
       expect(await staking.total_staked()).to.be.not.eq(0);
       
       const staker = await staking.stakers(addr0.address);
       expect(staker.user).to.be.not.eq(ethers.constants.AddressZero);
-
+      
       const odyssey = await staking.odysseys(odyssey1_id);
       expect(odyssey.total_stakers).to.be.not.eq(0);
     });
@@ -611,22 +612,22 @@ describe("Staking", function () {
     });
 
     it("should claim odyssey rewards when user is owner and have rewards", async function () {
-      const { staking, momToken, odysseyNFT, addr0, odyssey2_id } = await loadFixture(deployStaking);
+      const { staking, momToken, owner, addr0, odyssey2_id } = await loadFixture(deployStaking);
       const amount = 1000;
       const rewards = 50;
 
       await momToken.mint(addr0.address, amount);
       await momToken.connect(addr0).approve(staking.address, amount);
       await staking.connect(addr0).stake(odyssey2_id, amount, Token.MOM);
-
-      await staking.update_rewards([addr0.address], [rewards], [rewards], [odyssey2_id], [rewards], [rewards], rewards, await time.latest());
-
-      await expect(await staking.connect(addr0)["claim_rewards(uint256)"](odyssey2_id)).to.emit(staking, "OdysseyRewardsClaimed").withArgs(odyssey2_id, rewards*2);
-      await expect(await momToken.balanceOf(addr0.address)).to.be.eq(rewards*2);
+      
+      await staking.connect(owner).update_rewards([addr0.address], [rewards], [rewards], [odyssey2_id], [rewards], [rewards], rewards, await time.latest());
+      
+      await expect(await staking.connect(addr0)["claim_rewards(uint256)"](odyssey2_id)).to.emit(staking, "OdysseyRewardsClaimed").withArgs(odyssey2_id, rewards, rewards);
+      await expect(await momToken.balanceOf(addr0.address)).to.be.eq(rewards);
     });
 
     it("should claim rewards when user has staking rewards", async function () {
-      const { staking, momToken, odysseyNFT, addr0, odyssey1_id } = await loadFixture(deployStaking);
+      const { staking, momToken, addr0, odyssey1_id } = await loadFixture(deployStaking);
       const amount = 1000;
       const rewards = 50;
 
@@ -636,8 +637,8 @@ describe("Staking", function () {
 
       await staking.update_rewards([addr0.address], [rewards], [rewards], [odyssey1_id], [rewards], [rewards], rewards, await time.latest());
 
-      await expect(await staking.connect(addr0)["claim_rewards()"]()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, rewards*2);
-      await expect(await momToken.balanceOf(addr0.address)).to.be.eq(rewards*2);
+      await expect(await staking.connect(addr0)["claim_rewards()"]()).to.emit(staking, "RewardsClaimed").withArgs(addr0.address, rewards, rewards);
+      await expect(await momToken.balanceOf(addr0.address)).to.be.eq(rewards);
     });
   });
 
