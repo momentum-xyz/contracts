@@ -644,6 +644,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         staked_by_indexes[odyssey_id][last_item.user] = staked_by_indexes[odyssey_id][staker];
         staked_by[odyssey_id][staked_by_indexes[odyssey_id][staker]] = last_item;
         staked_by[odyssey_id].pop();
+        staked_by_indexes[odyssey_id][staker] = 0;
     }
 
    /**
