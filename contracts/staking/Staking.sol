@@ -527,10 +527,13 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         if (token == Token.DAD) {
             require(staked_by_from.dad_amount >= amount, "Not enough staked");
             staked_by_from.dad_amount -= amount;
+            staker.dad_amount -= amount;
         } else {
             require(staked_by_from.mom_amount >= amount, "Not enough staked");
             staked_by_from.mom_amount -= amount;
+            staker.mom_amount -= amount;
         }
+        staker.total_staked -= amount;
 
         // Removing all stake from the Odyssey
         if(staked_by_from.total_amount == amount) {
@@ -549,8 +552,6 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             total_staked -= amount;
         } 
 
-        staker.total_staked -= amount;
-        
         // Restake in the 'to' Odyssey  
         _do_stake(to_odyssey_id, amount, token);
 
