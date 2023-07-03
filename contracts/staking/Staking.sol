@@ -16,6 +16,12 @@ import "../nft/OdysseyNFT.sol";
 */
 contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;
+    
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     /**
      * @dev Manager Role that is able to update the contract structures
      */

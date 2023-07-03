@@ -31,7 +31,7 @@ describe("Staking", function () {
     await odysseyNFT.deployed();
 
     const Staking = await ethers.getContractFactory("Staking");
-    const staking = <Staking> await upgrades.deployProxy(Staking, [momToken.address, dadToken.address, odysseyNFT.address], { initializer: 'initialize', kind: 'uups'});
+    const staking = <Staking> await upgrades.deployProxy(Staking, [momToken.address, dadToken.address, odysseyNFT.address], { unsafeAllow: ["constructor"],  initializer: 'initialize', kind: 'uups'});
 
     await staking.deployed();
 
