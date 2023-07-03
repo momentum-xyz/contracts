@@ -16,7 +16,7 @@ import "../nft/OdysseyNFT.sol";
 */
 contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;
-    
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -496,6 +496,9 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
                     : staker.mom_amount -= amount;
             staker.total_staked -= amount;
         } else {
+            if(stakers[msg.sender].total_rewards > 0) {
+                _claim_rewards();
+            }
             delete stakers[msg.sender];
             remove_staked_by(odyssey_id, msg.sender);
             decrease_odyssey_total_stakers(odyssey_id, amount);

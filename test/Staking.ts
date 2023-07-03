@@ -502,6 +502,38 @@ describe("Staking", function () {
       await expect(await staking.connect(addr0).claim_unstaked_tokens()).to.emit(staking, "ClaimedUnstaked").withArgs(addr0.address, 0, amount);
       expect(await dadToken.balanceOf(addr0.address)).to.be.eq(amount);
     });
+
+    it("should unstake MOM and update structures removing staker and staked_by, both MOM and DAD staked differently by more than one staker in one Odyssey and claim user rewards", async function () {
+      const { staking, momToken, dadToken, addr0, addr1, addr2, odyssey1_id } = await loadFixture(deployStaking);
+      const amount = 1000;
+      const reward_amount = 10;
+      
+      await momToken.mint(addr0.address, amount);
+      await dadToken.mint(addr1.address, amount);
+      await momToken.mint(addr2.address, amount);
+      await momToken.connect(addr0).approve(staking.address, amount);
+      await dadToken.connect(addr1).approve(staking.address, amount);
+      await momToken.connect(addr2).approve(staking.address, amount);
+      await staking.connect(addr0).stake(odyssey1_id, amount, Token.MOM);
+      await staking.connect(addr1).stake(odyssey1_id, amount, Token.DAD);
+      await staking.connect(addr2).stake(odyssey1_id, amount, Token.MOM);
+
+      await staking.update_rewards([addr1.address], [reward_amount], [odyssey1_id], [reward_amount], await time.latest());
+
+      expect(await staking.callStatic.total_staked()).to.be.eq(amount*3);
+      await expect(await staking.connect(addr1).unstake(odyssey1_id, Token.DAD)).to.emit(staking, "Unstake").withArgs(addr1.address, odyssey1_id, amount, Token.DAD, 0);
+      expect(await staking.callStatic.total_staked()).to.be.eq(amount*2);
+      
+      const staker = await staking.callStatic.stakers(addr1.address);
+      expect(staker.user).to.be.eq(ethers.constants.AddressZero);
+
+      const odyssey = await staking.callStatic.odysseys(odyssey1_id);
+      expect(odyssey.total_stakers).to.be.eq(2);
+
+      const balance = await momToken.callStatic.balanceOf(addr1.address);
+      expect(balance).eq(reward_amount);
+    });
+
   });
 
   describe("Rewards", function () {
