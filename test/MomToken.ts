@@ -7,12 +7,17 @@ import { utils } from "./utils";
 describe("MomToken", function () {
   async function deployMomTokenOneKSupply() {
     const initialSupply = 1000;
-    const [owner, addr0] = await ethers.getSigners();
+    const [owner, addr0, addr1] = await ethers.getSigners();
 
+    const DADToken = await ethers.getContractFactory("DADToken");
+    const dadToken = await DADToken.deploy();
+    
     const MOMToken = await ethers.getContractFactory("MOMToken");
-    const momToken = await MOMToken.deploy(initialSupply);
+    const momToken = await MOMToken.deploy(initialSupply, addr1.address, dadToken.address);
+    
+    await dadToken.grantRole(await dadToken.MINTER_ROLE(), momToken.address);
 
-    return { momToken, initialSupply, owner, addr0 };
+    return { momToken, dadToken, initialSupply, owner, addr0, addr1 };
   }
 
   describe("Deployment", function () {
@@ -55,11 +60,20 @@ describe("MomToken", function () {
     });
 
     it("Should not mint tokens if address doesn't have the Minter role", async function () {
-      const { momToken, owner, addr0 } = await loadFixture(deployMomTokenOneKSupply);
+      const { momToken, addr0 } = await loadFixture(deployMomTokenOneKSupply);
       const amount = 10;
       const minterRole = await momToken.MINTER_ROLE();
 
       await expect(momToken.connect(addr0).mint(addr0.address, amount)).to.be.revertedWith(utils.rolesRevertString(addr0.address, minterRole));
+      await expect(momToken.mint(addr0.address, amount)).to.emit(momToken, "Transfer").withArgs(ethers.constants.AddressZero, addr0.address, amount);
+    });
+
+    it("Should not mint DAD tokens and the tokens to the vesting contract if address doesn't have the MOM Minter role", async function () {
+      const { momToken, owner, addr0 } = await loadFixture(deployMomTokenOneKSupply);
+      const amount = 10;
+      const minterRole = await momToken.MINTER_ROLE();
+
+      await expect(momToken.connect(addr0).mintDad(addr0.address, amount)).to.be.revertedWith(utils.rolesRevertString(addr0.address, minterRole));
       await expect(momToken.mint(addr0.address, amount)).to.emit(momToken, "Transfer").withArgs(ethers.constants.AddressZero, addr0.address, amount);
     });
 
@@ -73,7 +87,21 @@ describe("MomToken", function () {
 
       await expect(momToken.connect(addr0).unpause()).to.be.revertedWith(utils.rolesRevertString(addr0.address, pauserRole));
       await expect(momToken.unpause()).to.emit(momToken, "Unpaused").withArgs(owner.address);
+    });
+  });
 
+  describe("Utils", function () {
+    it("Should not mint DAD tokens to address and the same amount of MOM to vesting", async function () {
+      const { momToken, dadToken, owner, addr0, addr1 } = await loadFixture(deployMomTokenOneKSupply);
+      const amount = 10;
+
+      await momToken.connect(owner).mintDad(addr0.address, amount);
+      
+      const dad_balance = await dadToken.callStatic.balanceOf(addr0.address);
+      const mom_balance = await momToken.callStatic.balanceOf(addr1.address);
+
+      expect(dad_balance).eq(amount);
+      expect(mom_balance).eq(amount);
     });
   });
 });
