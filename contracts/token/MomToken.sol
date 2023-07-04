@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./DADToken.sol";
+import "../vesting/Vesting.sol";
 
 /** 
 * @title MOM Token
@@ -40,7 +41,7 @@ contract MOMToken is ERC20, ERC20Burnable, Pausable, AccessControl {
 
     /// Constructor of the contract
     constructor(uint256 initialSupply, address _vesting, address _dad) ERC20("Momentum", "MOM") {
-        require(_vesting != address(0) && _dad != address(0), "Invalid address");
+        require(_vesting != address(0) && _dad != address(0), "Address should not be 0");
         // assigning all roles to the deployer (owner)
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
@@ -89,8 +90,10 @@ contract MOMToken is ERC20, ERC20Burnable, Pausable, AccessControl {
      * @param amount Amount of tokens to be minted
      */
     function mintDad(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+        Vesting(vesting).update_holder(to, amount);
         DADToken(dad).mint(to, amount);
         _mint(vesting, amount);
+        
     }
 
 
