@@ -40,7 +40,7 @@ describe("Vesting", function () {
   }
 
   describe("Constructor", function () {
-      it("should set the right token contract addresses on initialize", async function () {
+      it("should set the right token contract addresses", async function () {
           const { vesting, momToken, dadToken, starting_date } = await loadFixture(deployVesting);
         
           expect(await vesting.mom_token()).to.eq(momToken.address);
@@ -48,6 +48,14 @@ describe("Vesting", function () {
           expect(await vesting.starting_date()).to.eq(starting_date);
           expect(await vesting.end_date()).to.eq(starting_date + time.duration.days(730));
       });
+
+      it("should fail if any input is 0", async function () {
+        const { dadToken, starting_date } = await loadFixture(deployVesting);
+      
+        const Vesting = await ethers.getContractFactory("Vesting");
+        await expect(Vesting.deploy(dadToken.address, 0)).to.be.reverted;
+        await expect(Vesting.deploy(ethers.constants.AddressZero, starting_date)).to.be.reverted;
+    });
   });
 
   describe("Holders", function () {
