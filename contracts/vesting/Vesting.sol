@@ -6,6 +6,12 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../token/DADToken.sol";
 
+/** 
+* @title Vesting Contract
+* @author Odyssey
+* @notice The Vesting Mechanism
+* DAD holders can gradually burn those tokens to get MOMs gradually over 2 years.
+*/
 contract Vesting is AccessControl {
     using SafeERC20 for IERC20;
     /**
@@ -13,22 +19,64 @@ contract Vesting is AccessControl {
      */
     bytes32 public constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
 
+    /**
+     * @notice Holder info 
+     */
     struct Holder {
         uint last_claim_date;
         uint256 total_tokens;
     }
 
+    /**
+     * @notice DAD token address
+     */
     address public dad_token;
+
+    /**
+     * @notice MOM token address
+     */
     address public mom_token;
+    
+    /**
+     * @notice Vesting starting date
+     */
     uint public starting_date;
+    
+    /**
+     * @notice Vesting end date
+     */
     uint public end_date;
+    
+    /**
+     * @notice MOM address set control flag
+     */
     bool private mom_set;
 
+    /**
+     * @notice Map address to holder
+     */
     mapping(address => Holder) public holders;
 
+    /**
+     * 
+     * @param holder User address
+     * @param amount Amount updated
+     * @param last_claim_date The last claim date of that holder
+     */
     event HolderUpdated(address holder, uint256 amount, uint last_claim_date);
+
+    /**
+     * 
+     * @param holder User address
+     * @param amount Amount of tokens redeemed
+     */
     event Redeemed(address holder, uint256 amount);
 
+    /**
+     * @dev constructor
+     * @param _dad_token DAD token address
+     * @param _starting_date Vesting starting date
+     */
     constructor(address _dad_token, uint _starting_date) {
         require(_dad_token != address(0) && _starting_date != 0, "Input cannot be 0");
         dad_token = _dad_token;
@@ -38,12 +86,21 @@ contract Vesting is AccessControl {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
+    /**
+     * @dev Updates the MOM address, this can only be done ONCE by admin
+     * @param _mom_token MOM token address
+     */
     function set_mom_address(address _mom_token) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(mom_set == false && _mom_token != address(0), "MOM address was set already or address is 0");
         mom_token = _mom_token;
         mom_set = true;
     }
 
+    /**
+     * @dev Update the Holder map by initializing the Holder if necessary
+     * @param holder User address
+     * @param amount Amount to be updated
+     */
     function update_holder(address holder, uint256 amount) public onlyRole(UPDATER_ROLE) {
         require(holder != address(0) && amount != 0, "Holder address or amount cannot be 0");
         
@@ -56,10 +113,17 @@ contract Vesting is AccessControl {
         emit HolderUpdated(holder, amount, holders[holder].last_claim_date);
     }
 
+    /**
+     * @notice Redeem the entitled tokens
+     * @dev Burns DAD and transfer MOM from this contract address to the user
+     */
     function redeem_tokens() public {
         return _redeem_tokens();
     }
 
+    /**
+     * @dev Actual logic of redeem_tokens
+     */
     function _redeem_tokens() private {
         require(mom_set, "MOM address is not set yet");
         Holder storage holder = holders[msg.sender];
