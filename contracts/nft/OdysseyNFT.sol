@@ -21,11 +21,6 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     uint256 private _counter = 0;
 
     /**
-     * @dev Max tokens supply
-     */
-    uint256 private _maxTokens;
-
-    /**
      * @dev UUID Mask for compatibility
      */
     uint256 constant private _UUIDMask = 0x80008000000000000000;
@@ -34,11 +29,6 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
      * @dev Custom base URI for the tokens
      */
     string private _customBaseURI;
-
-    /**
-     * @notice Max Odysseys per wallet allowed
-     */
-    uint256 private _maxOdysseysPerWallet;
 
     /**
      * @notice Total number of Odysseys.
@@ -66,19 +56,13 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
  * @dev Constructor of the contract
  * @param name_ ERC712 name
  * @param symbol_ ERC721 Symbol
- * @param maxTokens_ Max Odyssey supply
- * @param maxOdysseysPerWallet_ Max Odysseys per wallet
  * @param customBaseURI The custom base URI
  */
     constructor(
         string memory name_,
         string memory symbol_,
-        uint256 maxTokens_,
-        uint256 maxOdysseysPerWallet_,
         string memory customBaseURI
     ) ERC721(name_, symbol_) {
-         _maxTokens = maxTokens_;
-         _maxOdysseysPerWallet = maxOdysseysPerWallet_;
         _customBaseURI = customBaseURI;
     }
 
@@ -97,42 +81,6 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     }
 
     /**
-    * @notice Sets the maximum number of Odysseys which can be minted
-    * @param maxTokens_ Maximum limit for number of odysseys
-    */
-    function setMaxTokens(uint256 maxTokens_) public onlyOwner {
-        uint256 old_value = _maxTokens;
-        _maxTokens = maxTokens_;
-        emit StateUpdated("Max Tokens", old_value, _maxTokens);
-    }
-
-    /**
-    * @notice Returns the maximum number of Odyssey's which can be minted
-    * @return _maxTokens
-    */
-    function maxTokens() public view returns (uint256) {
-        return _maxTokens;
-    }
-
-    /**
-    * @notice Sets the maximum number of Odysseys which can be minted per wallet
-    * @param maxOdysseysPerWallet_ Maximum limit for number of odysseys per wallet
-    */
-    function setMaxOdysseysPerWallet(uint256 maxOdysseysPerWallet_) public onlyOwner {
-        uint256 old_value = _maxOdysseysPerWallet;
-        _maxOdysseysPerWallet = maxOdysseysPerWallet_;
-        emit StateUpdated("Max Odysseys per Wallet", old_value, _maxOdysseysPerWallet);
-    }
-
-    /**
-    * @notice Returns the maximum number of Odyssey's which can be minted per wallet
-    * @return _maxOdysseysPerWallet
-    */
-    function maxOdysseysPerWallet() public view returns (uint256) {
-        return _maxOdysseysPerWallet;
-    }
-
-    /**
      * @notice Returns the current id from the id counter
      * @return uint256 current ID counter value
      */
@@ -145,8 +93,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @param to The user address to mint the NFT
     */
     function safeMint(address to) public whenNotPaused onlyOwner {
-        require(odysseys < maxTokens(), "Max Odyssey supply reached");
-        require(balanceOf(to) < _maxOdysseysPerWallet, "Odyssey mints per wallet exceeded");
+       require(to != address(0), "Cannot mint to address 0");
         _increment();
         uint256 token_id = _counter;
         odysseys++;
@@ -209,6 +156,4 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     function _increment() internal {
         _counter = (_counter + 1) | _UUIDMask;
     }
-
-
 }

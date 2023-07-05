@@ -29,12 +29,18 @@ contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
      */
     bytes32 public constant TRANSFER_ROLE = keccak256("TRANSFER_ROLE");
 
+    /**
+     * @notice Role that can transfer tokens.
+     */
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+
     /// Constructor of the contract
     constructor() ERC20("Momentum", "DAD") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(BURNER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
         _grantRole(TRANSFER_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
     }
 
     /// @notice Pauses the contract, no actions will be allowed until it is unpaused
