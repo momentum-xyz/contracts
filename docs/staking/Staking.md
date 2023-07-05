@@ -4,6 +4,12 @@
 
 The Momentum staking mechanism
 
+### constructor
+
+```solidity
+constructor() public
+```
+
 ### MANAGER_ROLE
 
 ```solidity
@@ -164,6 +170,22 @@ mapping(address => struct Staking.Unstaker[]) unstakes
 
 Mapping the unstake list of the user address
 
+### staked_odysseys
+
+```solidity
+uint256[] staked_odysseys
+```
+
+list of staked odysseys
+
+### __gap
+
+```solidity
+uint256[50] __gap
+```
+
+storage gap for upgrades
+
 ### ClaimedUnstaked
 
 ```solidity
@@ -238,7 +260,7 @@ event RewardsUpdated(uint256 timestamp, uint256 blocknumber)
 ### Stake
 
 ```solidity
-event Stake(address user, uint256 odyssey, uint256 amount_staked, enum Staking.Token token, uint256 total_staked)
+event Stake(address user, uint256 odyssey_id, uint256 amount_staked, enum Staking.Token token, uint256 total_staked)
 ```
 
 #### Parameters
@@ -246,15 +268,29 @@ event Stake(address user, uint256 odyssey, uint256 amount_staked, enum Staking.T
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | user | address | User address |
-| odyssey | uint256 | Odyssey ID that's being staked |
+| odyssey_id | uint256 | Odyssey ID that's being staked |
 | amount_staked | uint256 | Amount being staked |
 | token | enum Staking.Token | Token used (MOM or DAD) |
 | total_staked | uint256 | Total being staked by the user on the Odyssey |
 
+### StateUpdated
+
+```solidity
+event StateUpdated(string state, uint256 from, uint256 to)
+```
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| state | string | State variable name |
+| from | uint256 | from value |
+| to | uint256 | to value |
+
 ### Unstake
 
 ```solidity
-event Unstake(address user, uint256 odyssey, uint256 amount_unstaked, enum Staking.Token token, uint256 total_staked)
+event Unstake(address user, uint256 odyssey_id, uint256 amount_unstaked, enum Staking.Token token, uint256 total_staked)
 ```
 
 #### Parameters
@@ -262,18 +298,10 @@ event Unstake(address user, uint256 odyssey, uint256 amount_unstaked, enum Staki
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | user | address | User address |
-| odyssey | uint256 | Odyssey ID that's being unstaked |
+| odyssey_id | uint256 | Odyssey ID that's being unstaked |
 | amount_unstaked | uint256 | Amount unstaked |
 | token | enum Staking.Token | Token used (MOM or DAD) |
 | total_staked | uint256 | Total remained staked by the user on that Odyssey |
-
-### staked_odysseys
-
-```solidity
-uint256[] staked_odysseys
-```
-
-list of staked odysseys
 
 ### initialize
 
@@ -305,48 +333,6 @@ Normally, this function will use an xref:access.adoc[access control] modifier su
 ```solidity
 function _authorizeUpgrade(address) internal override onlyOwner {}
 ```_
-
-### update_mom_token_contract
-
-```solidity
-function update_mom_token_contract(address _mom_token) public
-```
-
-_Updates the MOM token contract_
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _mom_token | address | new address for the MOM token contract |
-
-### update_dad_token_contract
-
-```solidity
-function update_dad_token_contract(address _dad_token) public
-```
-
-_Updates the DAD token contract_
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _dad_token | address | new address for the DAD token contract |
-
-### update_odyssey_nfts_contract
-
-```solidity
-function update_odyssey_nfts_contract(address _odyssey_nfts) public
-```
-
-_Updates the Odyssey NFT's contract_
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _odyssey_nfts | address | new address for the Odyssey NFT's contract |
 
 ### update_rewards
 
@@ -487,4 +473,10 @@ function claim_rewards(uint256 odyssey_id) public
 ```
 
 Claim Odyssey rewards
+
+### onlyMintedOdyssey
+
+```solidity
+modifier onlyMintedOdyssey(uint256 odyssey_id)
+```
 

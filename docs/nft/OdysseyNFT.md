@@ -13,6 +13,36 @@ uint256 odysseys
 Total number of Odysseys.
 It will increase when minting, and decrease when burning.
 
+### StateUpdated
+
+```solidity
+event StateUpdated(string state, uint256 from, uint256 to)
+```
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| state | string | State variable name |
+| from | uint256 | from value |
+| to | uint256 | to value |
+
+### StateUpdated
+
+```solidity
+event StateUpdated(string state, string from, string to)
+```
+
+_Overloading StateUpdated event to log string_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| state | string | State variable name |
+| from | string | from value |
+| to | string | to value |
+
 ### constructor
 
 ```solidity

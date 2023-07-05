@@ -53,6 +53,7 @@ ERC20 MOM token is the fuel of the Momentum Universe. With MOM tokens you can cr
 
 ### Description
 Standard ERC20 Token but with AccessControl. Ideally when deployed it will mint a certain amount of tokens to the Deployer.
+A function was added in order for this contract be able to mint `DAD` and mint the same amount in `MOM` for the `Vesting` contract, updating the control structures.
 
 ### UML Class Diagram
 ![MOM UML](./images/mom.png)
@@ -88,6 +89,9 @@ All roles are set to the Deployer of the contract, at first
 #### Burner
 Can burn tokens.
 
+#### Minter
+Can mint new tokens.
+
 #### Transfer
 Is allowed to transfer tokens. The design was made in such a way that the DAD tokens cannot be transfered by default, only the account with Transfer role is allowed to.
 This role is designed for the Staking contract, so the contract can transfer DADs to it and back to the owners.
@@ -105,6 +109,7 @@ All the rewards are paid using new minted tokens, according to the inflation and
 ### Description
 The Staking contract allows addresses to stake in Odysseys. All the funds are kept by the contract and can be reclaimed by the users when unstaking.
 A trusted third party calculate the rewards and updates the structures.
+For the first year, DAD tokens will make part of the rewards for users that had staked with DAD tokens.
 
 ### UML Class Diagram
 ![Staking UML](./images/stake.png)
@@ -114,3 +119,19 @@ All roles are set to the Deployer of the contract, at first
 #### Manager
 The role that is able to change the internal properties of the contract and update the rewards.
 Since the update of the rewards are made externally of the contract, we need a trsuted party to update the values.
+
+---
+
+## Vesting
+Users that holds DAD tokens are entitled to burn those tokes for MOM gradually over the time.
+
+### Description
+This contract burn DAD of the user in exchange of MOM tokens over time.
+
+### UML Class Diagram
+![Vesting UML](./images/vesting.png)
+
+### Roles
+All roles are set to the Deployer of the contract, at first
+#### Updater
+This role is made for the `MOM` contract be able to update it's structure of Holders.

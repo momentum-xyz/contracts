@@ -28,10 +28,26 @@ bytes32 BURNER_ROLE
 
 Role that can burn tokens.
 
+### dad
+
+```solidity
+address dad
+```
+
+_Address of the DAD token contract_
+
+### vesting
+
+```solidity
+address vesting
+```
+
+_Address of the Vesting contract_
+
 ### constructor
 
 ```solidity
-constructor(uint256 initialSupply) public
+constructor(uint256 initialSupply, address _vesting, address _dad) public
 ```
 
 Constructor of the contract
@@ -63,6 +79,25 @@ function mint(address to, uint256 amount) public
 ```
 
 Mint new tokens
+
+_Only admin and minter can perform this action_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| to | address | Destination of the new minted tokens |
+| amount | uint256 | Amount of tokens to be minted |
+
+### mintDad
+
+```solidity
+function mintDad(address to, uint256 amount) public
+```
+
+Mint DAD tokens to the user, and MOM tokens to the Vesting contract
+In this way, all DADs minted through this function will have the same value
+in MOMs on the Vesting contract.
 
 _Only admin and minter can perform this action_
 
