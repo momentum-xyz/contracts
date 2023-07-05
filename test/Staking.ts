@@ -10,24 +10,24 @@ ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.ERROR);
 describe("Staking", function () {
   async function deployStaking() {
     const initialSupply = 1000;
-    const [owner, addr0, addr1, addr2] = await ethers.getSigners();
+    const [owner, addr0, addr1, addr2, addr3] = await ethers.getSigners();
     const name = 'Odyssey_NFT';
     const symbol = 'ODS';
     const maxOdysseySupply = 21000;
     const maxTokensPerWallet = 150;
     const URI =  "ipfs://";
 
-    const MOMToken = await ethers.getContractFactory("MOMToken");
-    const momToken = await MOMToken.deploy(initialSupply);
-
     const DADToken = await ethers.getContractFactory("DADToken");
     const dadToken = await DADToken.deploy();
-
+    await dadToken.deployed();
+    
+    const MOMToken = await ethers.getContractFactory("MOMToken");
+    const momToken = await MOMToken.deploy(initialSupply, addr3.address, dadToken.address);
+   
     const OdysseyNFT = await ethers.getContractFactory("OdysseyNFT");
     const odysseyNFT = await OdysseyNFT.deploy(name, symbol, maxOdysseySupply, maxTokensPerWallet, URI);
 
     await momToken.deployed();
-    await dadToken.deployed();
     await odysseyNFT.deployed();
 
     const Staking = await ethers.getContractFactory("Staking");
