@@ -29,7 +29,7 @@ describe("Staking", function () {
     await odysseyNFT.deployed();
 
     const Staking = await ethers.getContractFactory("Staking");
-    const staking = <Staking> await upgrades.deployProxy(Staking, [momToken.address, dadToken.address, odysseyNFT.address], { unsafeAllow: ["constructor"],  initializer: 'initialize', kind: 'uups'});
+    const staking = <Staking> await upgrades.deployProxy(Staking, [momToken.address, dadToken.address, odysseyNFT.address, treasury.address], { unsafeAllow: ["constructor"],  initializer: 'initialize', kind: 'uups'});
 
     await staking.deployed();
 
@@ -521,7 +521,7 @@ describe("Staking", function () {
       await staking.connect(addr1).stake(odyssey1_id, amount, Token.DAD);
       await staking.connect(addr2).stake(odyssey1_id, amount, Token.MOM);
 
-      await staking.update_rewards([addr1.address], [reward_amount], [odyssey1_id], [reward_amount], await time.latest());
+      await staking.update_rewards([addr1.address], [reward_amount], [reward_amount], [odyssey1_id], [reward_amount], [reward_amount], reward_amount, await time.latest());
 
       expect(await staking.callStatic.total_staked()).to.be.eq(amount*3);
       await expect(await staking.connect(addr1).unstake(odyssey1_id, Token.DAD)).to.emit(staking, "Unstake").withArgs(addr1.address, odyssey1_id, amount, Token.DAD, 0);
