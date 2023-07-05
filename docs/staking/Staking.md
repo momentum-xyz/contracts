@@ -33,6 +33,8 @@ enum Token {
 struct Staker {
   address user;
   uint256 total_rewards;
+  uint256 dad_rewards;
+  uint256 mom_rewards;
   uint256 total_staked;
   uint256 dad_amount;
   uint256 mom_amount;
@@ -47,6 +49,8 @@ struct Odyssey {
   uint256 total_staked_into;
   uint256 total_stakers;
   uint256 total_rewards;
+  uint256 dad_rewards;
+  uint256 mom_rewards;
   uint256 staked_odysseys_index;
 }
 ```
@@ -60,7 +64,8 @@ struct StakedBy {
   uint256 dad_amount;
   uint256 mom_amount;
   uint256 timestamp;
-  uint256 effective_timestamp;
+  uint256 effective_timestamp_mom;
+  uint256 effective_timestamp_dad;
 }
 ```
 
@@ -70,7 +75,7 @@ struct StakedBy {
 struct Unstaker {
   uint256 dad_amount;
   uint256 mom_amount;
-  uint256 untaking_timestamp;
+  uint256 unstaking_timestamp;
 }
 ```
 
@@ -97,6 +102,14 @@ address odyssey_nfts
 ```
 
 Odyssey NFT's token address
+
+### treasury
+
+```solidity
+address treasury
+```
+
+Treasury address
 
 ### total_staked
 
@@ -203,7 +216,7 @@ event ClaimedUnstaked(address user, uint256 total_claimed, uint256 total_staked)
 ### OdysseyRewardsClaimed
 
 ```solidity
-event OdysseyRewardsClaimed(uint256 odyssey_id, uint256 total_rewards_claimed)
+event OdysseyRewardsClaimed(uint256 odyssey_id, uint256 total_mom_rewards_claimed, uint256 total_dad_rewards_claimed)
 ```
 
 #### Parameters
@@ -211,7 +224,8 @@ event OdysseyRewardsClaimed(uint256 odyssey_id, uint256 total_rewards_claimed)
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | odyssey_id | uint256 | Odyssey id |
-| total_rewards_claimed | uint256 | Total rewards claimed by the user |
+| total_mom_rewards_claimed | uint256 | Total mom rewards claimed by the user |
+| total_dad_rewards_claimed | uint256 | Total dad rewards claimed by the user |
 
 ### Restake
 
@@ -234,7 +248,7 @@ event Restake(address user, uint256 odyssey_from, uint256 odyssey_to, uint256 am
 ### RewardsClaimed
 
 ```solidity
-event RewardsClaimed(address user, uint256 total_rewards_claimed)
+event RewardsClaimed(address user, uint256 total_mom_rewards_claimed, uint256 total_dad_rewards_claimed)
 ```
 
 #### Parameters
@@ -242,7 +256,8 @@ event RewardsClaimed(address user, uint256 total_rewards_claimed)
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | user | address | User address |
-| total_rewards_claimed | uint256 | Total rewards claimed by the user |
+| total_mom_rewards_claimed | uint256 | Total mom rewards claimed by the user |
+| total_dad_rewards_claimed | uint256 | Total dad rewards claimed by the user |
 
 ### RewardsUpdated
 
@@ -306,7 +321,7 @@ event Unstake(address user, uint256 odyssey_id, uint256 amount_unstaked, enum St
 ### initialize
 
 ```solidity
-function initialize(address _mom_token, address _dad_token, address _odyssey_nfts) public
+function initialize(address _mom_token, address _dad_token, address _odyssey_nfts, address _treasury) public
 ```
 
 _Initializer of the contract, is called when deploying_
@@ -318,6 +333,7 @@ _Initializer of the contract, is called when deploying_
 | _mom_token | address | MOM Token contract address |
 | _dad_token | address | DAD Token contract address |
 | _odyssey_nfts | address | Odyssey NFT contract address |
+| _treasury | address |  |
 
 ### _authorizeUpgrade
 
@@ -337,7 +353,7 @@ function _authorizeUpgrade(address) internal override onlyOwner {}
 ### update_rewards
 
 ```solidity
-function update_rewards(address[] addresses, uint256[] stakers_amounts, uint256[] odysseys_ids, uint256[] odysseys_amounts, uint256 timestamp) public
+function update_rewards(address[] addresses, uint256[] stakers_amount_mom, uint256[] stakers_amount_dad, uint256[] odysseys_ids, uint256[] odysseys_amount_mom, uint256[] odysseys_amount_dad, uint256 treasury_ammount, uint256 timestamp) public
 ```
 
 _Update the staking rewards of the users_
@@ -347,9 +363,12 @@ _Update the staking rewards of the users_
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | addresses | address[] | list of addresses to update |
-| stakers_amounts | uint256[] | amount that will be updated per user |
+| stakers_amount_mom | uint256[] | mom amount that will be updated per user |
+| stakers_amount_dad | uint256[] | dad amount that will be updated per user |
 | odysseys_ids | uint256[] | list of odysseys id to update |
-| odysseys_amounts | uint256[] | amount that will be updated per odyssey |
+| odysseys_amount_mom | uint256[] | mom amount that will be updated per odyssey |
+| odysseys_amount_dad | uint256[] | dad amount that will be updated per odyssey |
+| treasury_ammount | uint256 |  |
 | timestamp | uint256 | timestamp of the reward calculation |
 
 ### update_locking_period
