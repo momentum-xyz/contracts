@@ -112,10 +112,12 @@ contract Vesting is AccessControl, ReentrancyGuard {
     function update_holder(address holder, uint256 amount) public onlyRole(UPDATER_ROLE) {
         require(holder != address(0) && amount != 0, "Holder address or amount cannot be 0");
         
-        uint current_timestamp = block.timestamp;
-        holders[holder].last_claim_date = holders[holder].last_claim_date == 0 && current_timestamp >= starting_date 
-            ? current_timestamp
-            : starting_date;
+        if(holders[holder].last_claim_date == 0) {
+            uint current_timestamp = block.timestamp;
+            holders[holder].last_claim_date = current_timestamp >= starting_date 
+                ? current_timestamp
+                : starting_date;
+        }
     
         holders[holder].total_tokens += amount;
         emit HolderUpdated(holder, amount, holders[holder].last_claim_date);
