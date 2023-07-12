@@ -14,8 +14,8 @@ permissions:
 jobs:
   build:
     runs-on: self-hosted  # ubuntu-latest
-    env:
-      HOME: ${{ runner.temp }}
+#    env:
+#      HOME: ${{ runner.temp }}
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab  # v3.5.2
       - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c  # v3.6.0
@@ -39,10 +39,13 @@ jobs:
       - id: abigen
         name: Build abigen
         run: |
+          export HOME=$RUNNER_TEMP
+          echo $HOME
           go build -mod=mod -o abigen github.com/ethereum/go-ethereum/cmd/abigen
       - id: go-bindings
         name: Generate go bindings
         run: |
+          echo $HOME
           git clone git@github.com:momentum-xyz/go-contracts.git
           for FN in abi/*.json; do
             MNAME=`echo $FN| sed 's/abi\///;s/.json//'`
