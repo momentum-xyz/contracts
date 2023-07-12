@@ -78,9 +78,12 @@ jobs:
             echo $MNAME $LMNAME
             $GOPATH/bin/abigen --abi $FN --pkg abi --type $LMNAME --out go-contracts/$LMNAME.go
           done
+      - id: push_bindings
+        name: Push GO bindings
+        run: |          
           cd go-contracts
           if [ "$REF_KIND" = "branch" ]; then
-            git push -u origin cicd_exp
+            git push -u origin $VERSION
           elif [ "$REF_KIND" = "tag" ]; then
             git tag $VERSION && git push origin $VERSION          
           fi
