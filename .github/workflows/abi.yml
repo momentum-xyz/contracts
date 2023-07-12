@@ -14,8 +14,6 @@ permissions:
 jobs:
   build:
     runs-on: self-hosted  # ubuntu-latest
-#    env:
-#      HOME: ${{ runner.temp }}
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab  # v3.5.2
       - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c  # v3.6.0
@@ -33,13 +31,15 @@ jobs:
         with:
           name: ABIs
           path: abi/
-      - id: sethome
-        run: |
-          export HOME=$RUNNER_TEMP
-          echo $HOME
+#      - id: sethome
+#        run: |
+#          export HOME=$RUNNER_TEMP
+#          echo $HOME
       - uses: actions/setup-go@v4
         with:
           go-version: '>=1.20.4'
+        env:
+          HOME: ${{ runner.temp }}
       - id: abigen
         name: Build abigen
         run: |
