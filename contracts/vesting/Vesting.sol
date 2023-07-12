@@ -126,8 +126,9 @@ contract Vesting is AccessControl {
      */
     function _redeem_tokens() private {
         require(mom_set, "MOM address is not set yet");
-        Holder storage holder = holders[msg.sender];
         uint current_timestamp = block.timestamp;
+        Holder storage holder = holders[msg.sender];
+        require(current_timestamp > holder.last_claim_date, "Nothing to receive at this moment");
         uint256 total_to_redeem = current_timestamp < end_date
             ? (holder.total_tokens * (current_timestamp - holder.last_claim_date)) / (end_date - holder.last_claim_date)
             :  holder.total_tokens;
