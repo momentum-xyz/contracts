@@ -70,15 +70,19 @@ jobs:
       - id: go-bindings
         name: Generate go bindings
         run: |
-          git clone https://${{ secrets.BACKFEED }}@github.com/momentum-xyz/go-contracts.git
-          git switch -c $VERSION origin/$VERSION || git c
+          git clone https://${{ secrets.BACKFEED }}@github.com/momentum-xyz/go-contracts.git          
+          git switch $VERSION || git switch -c $VERSION 
           for FN in abi/*.json; do
             MNAME=`echo $FN| sed 's/abi\///;s/.json//'`
             LMNAME=`echo $MNAME| tr '[:upper:]' '[:lower:]'`
             echo $MNAME $LMNAME
             $GOPATH/bin/abigen --abi $FN --pkg abi --type $LMNAME --out go-contracts/$LMNAME.go
           done
-          
-          cd go-contracts && git push
+          cd go-contracts
+          if [ "$REF_KIND" = "branch" ]; then
+            git push -u origin cicd_exp
+          elif [ "$REF_KIND" = "tag" ]; then
+            git tag $VERSION && git push origin $VERSION          
+          fi
                     
 
