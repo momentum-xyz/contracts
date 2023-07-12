@@ -14,6 +14,7 @@ permissions:
 jobs:
   build:
     runs-on: self-hosted  # ubuntu-latest
+    env: GO_PKG_NAME odyabi
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab  # v3.5.2
       - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c  # v3.6.0
@@ -80,7 +81,7 @@ jobs:
             MNAME=`echo $FN| sed 's/abi\///;s/.json//'`
             LMNAME=`echo $MNAME| tr '[:upper:]' '[:lower:]'`
             echo $MNAME $LMNAME
-            $GOPATH/bin/abigen --abi $FN --pkg abi --type $LMNAME --out go-contracts/$LMNAME.go
+            $GOPATH/bin/abigen --abi $FN --pkg $GO_PKG_NAME --type $LMNAME --out go-contracts/$LMNAME.go
             ( cd go-contracts && git add $LMNAME.go)
           done
           ( cd go-contracts && git commit -m "Update GO bindings by CI/CD")
