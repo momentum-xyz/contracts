@@ -45,10 +45,33 @@ jobs:
         name: Build abigen
         run: |
           go install -mod=mod github.com/ethereum/go-ethereum/cmd/abigen
+      - id: setvars
+        name: ${{github.event_name}}-${{github.event.ref }}
+        shell: bash
+        run: |          
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            REF_KIND=tag
+            VERSION=${GITHUB_REF#refs/tags/}
+          elif [[ $GITHUB_REF == refs/heads/release/* ]]; then
+            REF_KIND=tag
+            VERSION=${GITHUB_REF#refs/tags/}
+          elif [[ $GITHUB_REF == refs/heads/* ]]; then
+            REF_KIND=branch
+            VERSION=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
+          elif [[ $GITHUB_REF == refs/pull/* ]]; then
+            REF_KIND=pr
+            VERSION=pr-${{ github.event.number }}
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "REF_KIND=${REF_KIND}" >> $GITHUB_ENV
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "ref_kind=${REF_KIND}" >> $GITHUB_OUTPUT
+
       - id: go-bindings
         name: Generate go bindings
         run: |
           git clone https://github.com/momentum-xyz/go-contracts.git
+          git switch -c $VERSION origin/$VERSION || git c
           for FN in abi/*.json; do
             MNAME=`echo $FN| sed 's/abi\///;s/.json//'`
             LMNAME=`echo $MNAME| tr '[:upper:]' '[:lower:]'`
@@ -56,4 +79,5 @@ jobs:
             $GOPATH/bin/abigen --abi $FN --pkg abi --type $LMNAME --out go-contracts/$LMNAME.go
           done
           ls go-contracts
+                    
 
