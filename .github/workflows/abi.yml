@@ -53,7 +53,7 @@ jobs:
             MNAME=`echo $FN| sed 's/abi\///;s/.json//'`
             LMNAME=`echo $MNAME| tr '[:upper:]' '[:lower:]'`
             echo $MNAME $LMNAME
-            $GOPATH/bin/abigen --abi $FN --pkg abi --type $LMNAME --out $go-contracts/$LMNAME.go
+            $GOPATH/bin/abigen --abi $FN --pkg abi --type $LMNAME --out go-contracts/$LMNAME.go
           done
           ls go-contracts
 
