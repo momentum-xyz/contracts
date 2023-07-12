@@ -685,8 +685,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         require(odysseys[odyssey_id].total_rewards > 0, "No rewards available");
         require(OdysseyNFT(odyssey_nfts).ownerOf(odyssey_id) == msg.sender, "Not owner of that Odyssey");
 
-        uint256 dad_amount = stakers[msg.sender].dad_rewards;
-        uint256 mom_amount = stakers[msg.sender].mom_rewards;
+        uint256 dad_amount = odysseys[odyssey_id].dad_rewards;
+        uint256 mom_amount = odysseys[odyssey_id].mom_rewards;
         odysseys[odyssey_id].total_rewards = 0;
         odysseys[odyssey_id].dad_rewards = 0;
         odysseys[odyssey_id].mom_rewards = 0;
