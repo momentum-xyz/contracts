@@ -469,19 +469,19 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             staked_by[odyssey_id][index].timestamp = block.timestamp;
         } else {
             if(token == Token.DAD) {
-                staked_by[odyssey_id][index].dad_amount += amount;
                 staked_by[odyssey_id][index].effective_timestamp_dad = 
                     calculate_effective_timestamp(staked_by[odyssey_id][index].timestamp,
                         staked_by[odyssey_id][index].dad_amount,
                         amount,
                         true);
+                staked_by[odyssey_id][index].dad_amount += amount;
             } else {
-                staked_by[odyssey_id][index].mom_amount += amount;
                 staked_by[odyssey_id][index].effective_timestamp_mom = 
                     calculate_effective_timestamp(staked_by[odyssey_id][index].timestamp,
                         staked_by[odyssey_id][index].mom_amount,
                         amount,
                         true);
+                staked_by[odyssey_id][index].mom_amount += amount;
             }
             staked_by[odyssey_id][index].total_amount += amount;
             staked_by[odyssey_id][index].timestamp = block.timestamp;
