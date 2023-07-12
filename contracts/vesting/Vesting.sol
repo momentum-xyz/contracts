@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../token/DADToken.sol";
 
 /** 
@@ -12,7 +13,7 @@ import "../token/DADToken.sol";
 * @notice The Vesting Mechanism
 * DAD holders can gradually burn those tokens to get MOMs gradually over 2 years.
 */
-contract Vesting is AccessControl {
+contract Vesting is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
     /**
      * @notice Role that can update structures of the contract.
@@ -117,7 +118,7 @@ contract Vesting is AccessControl {
      * @notice Redeem the entitled tokens
      * @dev Burns DAD and transfer MOM from this contract address to the user
      */
-    function redeem_tokens() public {
+    function redeem_tokens() public nonReentrant {
         return _redeem_tokens();
     }
 
@@ -138,8 +139,9 @@ contract Vesting is AccessControl {
         require(dad_contract.balanceOf(msg.sender) >= total_to_redeem, "Not enough balance to burn");
         require(dad_contract.allowance(msg.sender, address(this)) >= total_to_redeem, "Allowance is needed");
 
-        dad_contract.burnFrom(msg.sender, total_to_redeem);
         holder.total_tokens = holder.total_tokens - total_to_redeem;
+        
+        dad_contract.burnFrom(msg.sender, total_to_redeem);
         IERC20(mom_token).safeTransfer(payable(msg.sender), total_to_redeem);
         
         emit Redeemed(msg.sender, total_to_redeem);
