@@ -44,16 +44,16 @@ jobs:
       - id: abigen
         name: Build abigen
         run: |
-          go build -mod=mod -o abigen github.com/ethereum/go-ethereum/cmd/abigen
+          go install -mod=mod github.com/ethereum/go-ethereum/cmd/abigen
       - id: go-bindings
         name: Generate go bindings
         run: |
-          git clone git@github.com:momentum-xyz/go-contracts.git
+          git clone https://github.com/momentum-xyz/go-contracts.git
           for FN in abi/*.json; do
             MNAME=`echo $FN| sed 's/abi\///;s/.json//'`
             LMNAME=`echo $MNAME| tr '[:upper:]' '[:lower:]'`
             echo $MNAME $LMNAME
-            abigen --abi $FN --pkg abi --type $LMNAME --out $go-contracts/$LMNAME.go
+            $GOPATH/bin/abigen --abi $FN --pkg abi --type $LMNAME --out $go-contracts/$LMNAME.go
           done
           ls go-contracts
 
