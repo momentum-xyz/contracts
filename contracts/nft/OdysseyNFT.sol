@@ -107,7 +107,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @param to Accountid of OdysseyNFT buyer   
     * @param tokenId The OdysseyId to transfer 
     */
-    function safeTransferFrom(address from, address to, uint256 tokenId) public whenNotPaused virtual override(ERC721, IERC721) {
+    function safeTransferFrom(address from, address to, uint256 tokenId) public virtual override(ERC721, IERC721) whenNotPaused {
         safeTransferFrom(from, to, tokenId, "");
     }
 
@@ -115,7 +115,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @notice Sets the base URI of NFT metadata folder
     * @param baseURI baseURI
     */    
-    function setbaseURI(string calldata baseURI) public onlyOwner {
+    function setbaseURI(string calldata baseURI) public whenNotPaused onlyOwner {
         string memory old_value = _customBaseURI;
         _customBaseURI = baseURI;
         emit StateUpdated("Base URI", old_value, _customBaseURI);
@@ -143,7 +143,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @notice Burns an OdysseyNFT
     * @param tokenId tokenId of an OdysseyNFT
     */ 
-    function burn(uint256 tokenId) public {
+    function burn(uint256 tokenId) public whenNotPaused {
         _requireMinted(tokenId);
         require(_isApprovedOrOwner(_msgSender(), tokenId), "caller is not token owner or approved");
         odysseys--;
