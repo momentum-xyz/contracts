@@ -135,6 +135,7 @@ contract Vesting is AccessControl, ReentrancyGuard {
     function _redeem_tokens() private {
         require(mom_set, "MOM address is not set yet");
         uint current_timestamp = block.timestamp;
+        require(current_timestamp > starting_date, "Vesting not started");
         Holder storage holder = holders[msg.sender];
         require(current_timestamp > holder.last_claim_date, "Nothing to redeem at this moment");
         uint256 total_to_redeem = current_timestamp < end_date

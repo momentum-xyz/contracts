@@ -188,6 +188,19 @@ describe("Vesting", function () {
 
       await expect(vesting.connect(addr0).redeem_tokens()).to.revertedWith("Allowance is needed");
     });
+
+    it("should not redeem tokens if vesting has not started yet", async function () {
+      const { vesting, dadToken, addr0 } = await loadFixture(deployVesting);
+      const timestamp = await time.latest();
+      const amount = 1000;
+
+      await vesting.update_holder(addr0.address, amount);
+
+      await dadToken.connect(addr0).approve(vesting.address, 1);
+      await dadToken.mint(addr0.address, amount);
+
+      await expect(vesting.connect(addr0).redeem_tokens()).to.revertedWith("Vesting not started");
+    });
   });
 
   describe("Utils", function () {
