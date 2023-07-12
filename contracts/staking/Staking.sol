@@ -470,14 +470,14 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         } else {
             if(token == Token.DAD) {
                 staked_by[odyssey_id][index].effective_timestamp_dad = 
-                    calculate_effective_timestamp(staked_by[odyssey_id][index].timestamp,
+                    calculate_effective_timestamp(staked_by[odyssey_id][index].effective_timestamp_dad,
                         staked_by[odyssey_id][index].dad_amount,
                         amount,
                         true);
                 staked_by[odyssey_id][index].dad_amount += amount;
             } else {
                 staked_by[odyssey_id][index].effective_timestamp_mom = 
-                    calculate_effective_timestamp(staked_by[odyssey_id][index].timestamp,
+                    calculate_effective_timestamp(staked_by[odyssey_id][index].effective_timestamp_mom,
                         staked_by[odyssey_id][index].mom_amount,
                         amount,
                         true);
@@ -514,13 +514,13 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         if(staker.total_staked > amount) {
             if(_staked_by.total_amount > amount) {
                 if(token == Token.DAD) {
-                    _staked_by.effective_timestamp_dad = calculate_effective_timestamp(_staked_by.timestamp,
+                    _staked_by.effective_timestamp_dad = calculate_effective_timestamp(_staked_by.effective_timestamp_dad,
                         _staked_by.dad_amount,
                         amount,
                         false);
                     _staked_by.dad_amount = 0;
                 } else {
-                    _staked_by.effective_timestamp_mom = calculate_effective_timestamp(_staked_by.timestamp,
+                    _staked_by.effective_timestamp_mom = calculate_effective_timestamp(_staked_by.effective_timestamp_mom,
                         _staked_by.mom_amount,
                         amount,
                         false);
@@ -577,7 +577,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 total_staked_from = 0;
         if (token == Token.DAD) {
             require(staked_by_from.dad_amount >= amount, "Not enough staked");
-            staked_by_from.effective_timestamp_dad = calculate_effective_timestamp(staked_by_from.timestamp,
+            staked_by_from.effective_timestamp_dad = calculate_effective_timestamp(staked_by_from.effective_timestamp_dad,
                                                                     staked_by_from.dad_amount,
                                                                     amount,
                                                                     false);
@@ -585,7 +585,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             staker.dad_amount -= amount;
         } else {
             require(staked_by_from.mom_amount >= amount, "Not enough staked");
-            staked_by_from.effective_timestamp_mom = calculate_effective_timestamp(staked_by_from.timestamp,
+            staked_by_from.effective_timestamp_mom = calculate_effective_timestamp(staked_by_from.effective_timestamp_mom,
                                                                     staked_by_from.mom_amount,
                                                                     amount,
                                                                     false);
