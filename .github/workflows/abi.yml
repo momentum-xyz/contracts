@@ -31,23 +31,23 @@ jobs:
         with:
           name: ABIs
           path: abi/
+      - id: go-fixup
+        # Workaround for setup-go on self-hosted runner, without a $HOME
+        name: Go fixup
+        run: |
+          echo "GOMODCACHE=/opt/go-cache/mod" >> $GITHUB_ENV
+          echo "GOCACHE=/opt/go-cache/build" >> $GITHUB_ENV
+          echo "GOPATH=/opt/go" >> $GITHUB_ENV
       - uses: actions/setup-go@v4
         with:
           go-version: '>=1.20.4'
-        env:
-          HOME: ${{ runner.temp }}
       - id: abigen
         name: Build abigen
-        env:
-          HOME: ${{ runner.temp }}
         run: |
           go build -mod=mod -o abigen github.com/ethereum/go-ethereum/cmd/abigen
       - id: go-bindings
         name: Generate go bindings
-        env:
-          HOME: ${{ runner.temp }}
         run: |
-          echo $HOME
           git clone git@github.com:momentum-xyz/go-contracts.git
           for FN in abi/*.json; do
             MNAME=`echo $FN| sed 's/abi\///;s/.json//'`
