@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  HOME: ${{ runner.temp }}
+
 jobs:
   build:
     runs-on: self-hosted  # ubuntu-latest
