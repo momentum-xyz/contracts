@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - develop
+      - cicd_exp
   workflow_dispatch:
 
 permissions:
@@ -17,6 +18,7 @@ jobs:
       - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c  # v3.6.0
         with:
           node-version-file: package.json
+      - uses: actions/setup-go@v4
       - id: npm-deps
         name: Install dependencies
         run: npm ci
@@ -29,3 +31,19 @@ jobs:
         with:
           name: ABIs
           path: abi/
+      - id: abigen
+        name: Build abigen
+        run: |
+          go build -mod=mod -o abigen github.com/ethereum/go-ethereum/cmd/abigen
+      - id: go-bindings
+        name: Generate go bindings
+        run: |
+          git clone git@github.com:momentum-xyz/go-contracts.git
+          for FN in abi/*.json; do
+            MNAME=`echo $FN| sed 's/abi\///;s/.json//'`
+            LMNAME=`echo $MNAME| tr '[:upper:]' '[:lower:]'`
+            echo $MNAME $LMNAME
+            abigen --abi $FN --pkg abi --type $LMNAME --out $go-contracts/$LMNAME.go
+          done
+          ls go-contracts
+
