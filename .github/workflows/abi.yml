@@ -70,7 +70,7 @@ jobs:
       - id: go-bindings
         name: Generate go bindings
         run: |
-          git clone https://github.com/momentum-xyz/go-contracts.git
+          git clone https://${{ secrets.BACKFEED }}@github.com/momentum-xyz/go-contracts.git
           git switch -c $VERSION origin/$VERSION || git c
           for FN in abi/*.json; do
             MNAME=`echo $FN| sed 's/abi\///;s/.json//'`
@@ -78,6 +78,7 @@ jobs:
             echo $MNAME $LMNAME
             $GOPATH/bin/abigen --abi $FN --pkg abi --type $LMNAME --out go-contracts/$LMNAME.go
           done
-          ls go-contracts
+          
+          cd go-contracts && git push
                     
 
