@@ -273,8 +273,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param odysseys_amount_dad dad amount that will be updated per odyssey
      * @param timestamp timestamp of the reward calculation
      */
-    function update_rewards(address[] memory addresses, uint256[] memory stakers_amount_mom, uint256[] memory stakers_amount_dad,
-                            uint256[] memory odysseys_ids, uint256[] memory odysseys_amount_mom, uint256[] memory odysseys_amount_dad,
+    function update_rewards(address[] calldata addresses, uint256[] memory stakers_amount_mom, uint256[] memory stakers_amount_dad,
+                            uint256[] calldata odysseys_ids, uint256[] memory odysseys_amount_mom, uint256[] memory odysseys_amount_dad,
                             uint256 treasury_ammount,
                             uint timestamp ) public onlyRole(MANAGER_ROLE) {
         require(addresses.length > 0
