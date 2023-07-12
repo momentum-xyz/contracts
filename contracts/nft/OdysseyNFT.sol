@@ -37,14 +37,6 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     uint256 public odysseys = 0;
 
     /**
-     * 
-     * @param state State variable name
-     * @param from from value
-     * @param to to value
-     */
-    event StateUpdated(string indexed state, uint256 from, uint256 to);
-
-    /**
      * @dev Overloading StateUpdated event to log string
      * @param state State variable name
      * @param from from value
