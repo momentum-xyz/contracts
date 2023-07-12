@@ -114,6 +114,14 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     }
 
     /**
+     * @dev See {IERC721-safeTransferFrom}.
+     */
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public virtual override(ERC721, IERC721) whenNotPaused {
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: caller is not token owner or approved");
+        _safeTransfer(from, to, tokenId, data);
+    }
+
+    /**
     * @notice Sets the base URI of NFT metadata folder
     * @param baseURI baseURI
     */    
