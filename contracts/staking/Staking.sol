@@ -273,8 +273,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param odysseys_amount_dad dad amount that will be updated per odyssey
      * @param timestamp timestamp of the reward calculation
      */
-    function update_rewards(address[] memory addresses, uint256[] memory stakers_amount_mom, uint256[] memory stakers_amount_dad,
-                            uint256[] memory odysseys_ids, uint256[] memory odysseys_amount_mom, uint256[] memory odysseys_amount_dad,
+    function update_rewards(address[] calldata addresses, uint256[] memory stakers_amount_mom, uint256[] memory stakers_amount_dad,
+                            uint256[] calldata odysseys_ids, uint256[] memory odysseys_amount_mom, uint256[] memory odysseys_amount_dad,
                             uint256 treasury_ammount,
                             uint timestamp ) public onlyRole(MANAGER_ROLE) {
         require(addresses.length > 0
@@ -351,7 +351,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be staked in the Odyssey
      * @param token Token that will be staked
      */
-    function stake(uint256 odyssey_id, uint256 amount, Token token) public payable {
+    function stake(uint256 odyssey_id, uint256 amount, Token token) public {
         _stake(odyssey_id, amount, token);
     }
 
@@ -469,19 +469,19 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             staked_by[odyssey_id][index].timestamp = block.timestamp;
         } else {
             if(token == Token.DAD) {
-                staked_by[odyssey_id][index].dad_amount += amount;
                 staked_by[odyssey_id][index].effective_timestamp_dad = 
-                    calculate_effective_timestamp(staked_by[odyssey_id][index].timestamp,
+                    calculate_effective_timestamp(staked_by[odyssey_id][index].effective_timestamp_dad,
                         staked_by[odyssey_id][index].dad_amount,
                         amount,
                         true);
+                staked_by[odyssey_id][index].dad_amount += amount;
             } else {
-                staked_by[odyssey_id][index].mom_amount += amount;
                 staked_by[odyssey_id][index].effective_timestamp_mom = 
-                    calculate_effective_timestamp(staked_by[odyssey_id][index].timestamp,
+                    calculate_effective_timestamp(staked_by[odyssey_id][index].effective_timestamp_mom,
                         staked_by[odyssey_id][index].mom_amount,
                         amount,
                         true);
+                staked_by[odyssey_id][index].mom_amount += amount;
             }
             staked_by[odyssey_id][index].total_amount += amount;
             staked_by[odyssey_id][index].timestamp = block.timestamp;
@@ -514,13 +514,13 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         if(staker.total_staked > amount) {
             if(_staked_by.total_amount > amount) {
                 if(token == Token.DAD) {
-                    _staked_by.effective_timestamp_dad = calculate_effective_timestamp(_staked_by.timestamp,
+                    _staked_by.effective_timestamp_dad = calculate_effective_timestamp(_staked_by.effective_timestamp_dad,
                         _staked_by.dad_amount,
                         amount,
                         false);
                     _staked_by.dad_amount = 0;
                 } else {
-                    _staked_by.effective_timestamp_mom = calculate_effective_timestamp(_staked_by.timestamp,
+                    _staked_by.effective_timestamp_mom = calculate_effective_timestamp(_staked_by.effective_timestamp_mom,
                         _staked_by.mom_amount,
                         amount,
                         false);
@@ -577,7 +577,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 total_staked_from = 0;
         if (token == Token.DAD) {
             require(staked_by_from.dad_amount >= amount, "Not enough staked");
-            staked_by_from.effective_timestamp_dad = calculate_effective_timestamp(staked_by_from.timestamp,
+            staked_by_from.effective_timestamp_dad = calculate_effective_timestamp(staked_by_from.effective_timestamp_dad,
                                                                     staked_by_from.dad_amount,
                                                                     amount,
                                                                     false);
@@ -585,7 +585,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
             staker.dad_amount -= amount;
         } else {
             require(staked_by_from.mom_amount >= amount, "Not enough staked");
-            staked_by_from.effective_timestamp_mom = calculate_effective_timestamp(staked_by_from.timestamp,
+            staked_by_from.effective_timestamp_mom = calculate_effective_timestamp(staked_by_from.effective_timestamp_mom,
                                                                     staked_by_from.mom_amount,
                                                                     amount,
                                                                     false);
@@ -685,8 +685,8 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
         require(odysseys[odyssey_id].total_rewards > 0, "No rewards available");
         require(OdysseyNFT(odyssey_nfts).ownerOf(odyssey_id) == msg.sender, "Not owner of that Odyssey");
 
-        uint256 dad_amount = stakers[msg.sender].dad_rewards;
-        uint256 mom_amount = stakers[msg.sender].mom_rewards;
+        uint256 dad_amount = odysseys[odyssey_id].dad_rewards;
+        uint256 mom_amount = odysseys[odyssey_id].mom_rewards;
         odysseys[odyssey_id].total_rewards = 0;
         odysseys[odyssey_id].dad_rewards = 0;
         odysseys[odyssey_id].mom_rewards = 0;
