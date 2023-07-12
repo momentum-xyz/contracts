@@ -160,7 +160,7 @@ describe("Vesting", function () {
 
       await time.increaseTo(timestamp + time.duration.days(5));
 
-      await expect(vesting.connect(addr0).redeem_tokens()).to.revertedWith("No tokens to redeem");
+      await expect(vesting.connect(addr0).redeem_tokens()).to.revertedWith("Nothing to redeem at this moment");
     });
 
     it("should not redeem tokens if there not enough balance to burn", async function () {
@@ -206,6 +206,15 @@ describe("Vesting", function () {
       await vesting.deployed();
 
       await expect(vesting.set_mom_address(ethers.constants.AddressZero)).to.revertedWith("MOM address was set already or address is 0");
+    });
+
+    it("shold emit MOM address updated event", async function () {
+      const { dadToken, momToken, starting_date } = await loadFixture(deployVesting);
+      const Vesting = await ethers.getContractFactory("Vesting");
+      const vesting = await Vesting.deploy(dadToken.address, starting_date);
+      await vesting.deployed();
+
+      await expect(await vesting.set_mom_address(momToken.address)).to.emit(vesting, "MOMAddressUpdated").withArgs(momToken.address);
     });
   });
 

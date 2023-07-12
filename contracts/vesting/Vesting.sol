@@ -68,6 +68,12 @@ contract Vesting is AccessControl, ReentrancyGuard {
 
     /**
      * 
+     * @param mom MOM token address
+     */
+    event MOMAddressUpdated(address mom);
+
+    /**
+     * 
      * @param holder User address
      * @param amount Amount of tokens redeemed
      */
@@ -95,6 +101,7 @@ contract Vesting is AccessControl, ReentrancyGuard {
         require(mom_set == false && _mom_token != address(0), "MOM address was set already or address is 0");
         mom_token = _mom_token;
         mom_set = true;
+        emit MOMAddressUpdated(mom_token);
     }
 
     /**
@@ -129,11 +136,11 @@ contract Vesting is AccessControl, ReentrancyGuard {
         require(mom_set, "MOM address is not set yet");
         uint current_timestamp = block.timestamp;
         Holder storage holder = holders[msg.sender];
-        require(current_timestamp > holder.last_claim_date, "Nothing to receive at this moment");
+        require(current_timestamp > holder.last_claim_date, "Nothing to redeem at this moment");
         uint256 total_to_redeem = current_timestamp < end_date
             ? (holder.total_tokens * (current_timestamp - holder.last_claim_date)) / (end_date - holder.last_claim_date)
             :  holder.total_tokens;
-        require(total_to_redeem > 0 , "Nothing to receive at this moment");
+        require(total_to_redeem > 0 , "Nothing to redeem at this moment");
         DADToken dad_contract = DADToken(dad_token);
         
         require(holder.total_tokens > 0, "No tokens to redeem");
