@@ -33,7 +33,8 @@ jobs:
         with:
           name: ABIs
           path: abi/
-      - id: home
+      - id: sethome
+        run: |
           export HOME=$RUNNER_TEMP
           echo $HOME
       - uses: actions/setup-go@v4
