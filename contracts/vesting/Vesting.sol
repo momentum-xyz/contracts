@@ -133,6 +133,7 @@ contract Vesting is AccessControl, ReentrancyGuard {
         uint256 total_to_redeem = current_timestamp < end_date
             ? (holder.total_tokens * (current_timestamp - holder.last_claim_date)) / (end_date - holder.last_claim_date)
             :  holder.total_tokens;
+        require(total_to_redeem > 0 , "Nothing to receive at this moment");
         DADToken dad_contract = DADToken(dad_token);
         
         require(holder.total_tokens > 0, "No tokens to redeem");
