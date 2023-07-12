@@ -30,7 +30,7 @@ contract Vesting is AccessControl {
     /**
      * @notice DAD token address
      */
-    address public dad_token;
+    address immutable public dad_token;
 
     /**
      * @notice MOM token address
@@ -40,12 +40,12 @@ contract Vesting is AccessControl {
     /**
      * @notice Vesting starting date
      */
-    uint public starting_date;
+    uint immutable public starting_date;
     
     /**
      * @notice Vesting end date
      */
-    uint public end_date;
+    uint immutable public end_date;
     
     /**
      * @notice MOM address set control flag
