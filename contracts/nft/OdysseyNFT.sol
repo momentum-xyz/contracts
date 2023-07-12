@@ -94,6 +94,16 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     }
 
     /**
+     * @dev See {IERC721-transferFrom}.
+     */
+    function transferFrom(address from, address to, uint256 tokenId) public virtual override(ERC721, IERC721) whenNotPaused {
+        //solhint-disable-next-line max-line-length
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: caller is not token owner or approved");
+
+        _transfer(from, to, tokenId);
+    }
+
+    /**
     * @notice Transfers OdysseyNFT from owner to buyer
     * @param from Accountid of OdysseyNFT owner
     * @param to Accountid of OdysseyNFT buyer   
