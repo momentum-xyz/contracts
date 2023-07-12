@@ -71,7 +71,7 @@ jobs:
         name: Generate go bindings
         run: |
           git clone https://${{ secrets.BACKFEED }}@github.com/momentum-xyz/go-contracts.git          
-          git switch $VERSION || git switch -c $VERSION 
+          cd go-contracts &&  ( git switch $VERSION || git switch -c $VERSION ) 
           for FN in abi/*.json; do
             MNAME=`echo $FN| sed 's/abi\///;s/.json//'`
             LMNAME=`echo $MNAME| tr '[:upper:]' '[:lower:]'`
