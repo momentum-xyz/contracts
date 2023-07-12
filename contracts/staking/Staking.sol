@@ -351,7 +351,7 @@ contract Staking is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
      * @param amount Amount to be staked in the Odyssey
      * @param token Token that will be staked
      */
-    function stake(uint256 odyssey_id, uint256 amount, Token token) public payable {
+    function stake(uint256 odyssey_id, uint256 amount, Token token) public {
         _stake(odyssey_id, amount, token);
     }
 
