@@ -49,6 +49,7 @@ async function main() {
 
   // Staking can transfer DADs
   await dadToken.grantRole(dadToken.TRANSFER_ROLE(), staking.address);
+  await momToken.grantRole(momToken.MINTER_ROLE(), staking.address);
   console.log("Staking roles set");
 
   await vesting.set_mom_address(momToken.address);
