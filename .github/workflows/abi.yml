@@ -3,8 +3,9 @@ name: Generate ABI
 on:
   push:
     branches:
-      - develop
-      - cicd_exp
+      - "**"
+    tags:
+      - "**"
   workflow_dispatch:
 
 permissions:
