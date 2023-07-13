@@ -37,14 +37,6 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     uint256 public odysseys = 0;
 
     /**
-     * 
-     * @param state State variable name
-     * @param from from value
-     * @param to to value
-     */
-    event StateUpdated(string indexed state, uint256 from, uint256 to);
-
-    /**
      * @dev Overloading StateUpdated event to log string
      * @param state State variable name
      * @param from from value
@@ -102,20 +94,38 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     }
 
     /**
+     * @dev See {IERC721-transferFrom}.
+     */
+    function transferFrom(address from, address to, uint256 tokenId) public virtual override(ERC721, IERC721) whenNotPaused {
+        //solhint-disable-next-line max-line-length
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: caller is not token owner or approved");
+
+        _transfer(from, to, tokenId);
+    }
+
+    /**
     * @notice Transfers OdysseyNFT from owner to buyer
     * @param from Accountid of OdysseyNFT owner
     * @param to Accountid of OdysseyNFT buyer   
     * @param tokenId The OdysseyId to transfer 
     */
-    function safeTransferFrom(address from, address to, uint256 tokenId) public whenNotPaused virtual override(ERC721, IERC721) {
+    function safeTransferFrom(address from, address to, uint256 tokenId) public virtual override(ERC721, IERC721) whenNotPaused {
         safeTransferFrom(from, to, tokenId, "");
+    }
+
+    /**
+     * @dev See {IERC721-safeTransferFrom}.
+     */
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public virtual override(ERC721, IERC721) whenNotPaused {
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: caller is not token owner or approved");
+        _safeTransfer(from, to, tokenId, data);
     }
 
     /**
     * @notice Sets the base URI of NFT metadata folder
     * @param baseURI baseURI
     */    
-    function setbaseURI(string calldata baseURI) public onlyOwner {
+    function setbaseURI(string calldata baseURI) public whenNotPaused onlyOwner {
         string memory old_value = _customBaseURI;
         _customBaseURI = baseURI;
         emit StateUpdated("Base URI", old_value, _customBaseURI);
@@ -143,7 +153,7 @@ contract OdysseyNFT is ERC721URIStorage, Pausable, Ownable {
     * @notice Burns an OdysseyNFT
     * @param tokenId tokenId of an OdysseyNFT
     */ 
-    function burn(uint256 tokenId) public {
+    function burn(uint256 tokenId) public whenNotPaused {
         _requireMinted(tokenId);
         require(_isApprovedOrOwner(_msgSender(), tokenId), "caller is not token owner or approved");
         odysseys--;

@@ -32,12 +32,12 @@ contract MOMToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     /**
      * @dev Address of the DAD token contract
      */
-    address dad;
+    address immutable dad;
 
     /**
      * @dev Address of the Vesting contract
      */
-    address vesting;
+    address immutable vesting;
 
     /// Constructor of the contract
     constructor(uint256 initialSupply, address _vesting, address _dad) ERC20("Momentum", "MOM") {
