@@ -3,15 +3,20 @@ name: Generate ABI
 on:
   push:
     branches:
-      - develop
+      - "**"
+    tags:
+      - "**"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+
 jobs:
   build:
     runs-on: self-hosted  # ubuntu-latest
+    env:
+      GO_PKG_NAME: odysseyabi
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab  # v3.5.2
       - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c  # v3.6.0
@@ -29,3 +34,66 @@ jobs:
         with:
           name: ABIs
           path: abi/
+      - id: go-fixup
+        # Workaround for setup-go on self-hosted runner, without a $HOME
+        name: Go fixup
+        run: |
+          echo "GOMODCACHE=/opt/go-cache/mod" >> $GITHUB_ENV
+          echo "GOCACHE=/opt/go-cache/build" >> $GITHUB_ENV
+          echo "GOPATH=/opt/go" >> $GITHUB_ENV
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20.4'
+      - id: abigen
+        name: Build abigen
+        run: |
+          go install -mod=mod github.com/ethereum/go-ethereum/cmd/abigen
+      - id: setvars
+        name: ${{github.event_name}}-${{github.event.ref }}
+        shell: bash
+        run: |          
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            REF_KIND=tag
+            VERSION=${GITHUB_REF#refs/tags/}
+          elif [[ $GITHUB_REF == refs/heads/release/* ]]; then
+            REF_KIND=tag
+            VERSION=${GITHUB_REF#refs/tags/}
+          elif [[ $GITHUB_REF == refs/heads/* ]]; then
+            REF_KIND=branch
+            VERSION=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
+          elif [[ $GITHUB_REF == refs/pull/* ]]; then
+            REF_KIND=pr
+            VERSION=pr-${{ github.event.number }}
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "REF_KIND=${REF_KIND}" >> $GITHUB_ENV
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "ref_kind=${REF_KIND}" >> $GITHUB_OUTPUT
+
+      - id: checkout-go-bindings
+        name: checkout go bindings
+        run: |
+          git clone https://${{ secrets.BACKFEED }}@github.com/momentum-xyz/go-contracts.git          
+          ( cd go-contracts &&  ( git switch $VERSION || git switch -c $VERSION ) && rm *.go ) 
+
+      - id: gen-go-bindings
+        name: Generate go bindings
+        run: |
+          for FN in `ls -1 abi | grep -v -i test`; do
+            MNAME=`echo $FN| sed 's/.json//'`
+            LMNAME=`echo $MNAME| tr '[:upper:]' '[:lower:]'`
+            echo $MNAME $LMNAME
+            $GOPATH/bin/abigen --abi abi/$FN --pkg $GO_PKG_NAME --type $LMNAME --out go-contracts/$LMNAME.go            
+          done
+          ( cd go-contracts && (git commit . -m "Update GO bindings by CI/CD" || true) )
+      - id: push_bindings
+        name: Push GO bindings
+        run: |          
+          cd go-contracts
+          if [ "$REF_KIND" = "branch" ]; then
+            git push -u origin $VERSION
+          elif [ "$REF_KIND" = "tag" ]; then
+            git tag $VERSION && git push origin $VERSION          
+          fi
+                    
+
