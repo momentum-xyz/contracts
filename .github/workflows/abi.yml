@@ -73,19 +73,18 @@ jobs:
         name: checkout go bindings
         run: |
           git clone https://${{ secrets.BACKFEED }}@github.com/momentum-xyz/go-contracts.git          
-          ( cd go-contracts &&  ( git switch $VERSION || git switch -c $VERSION ) ) 
+          ( cd go-contracts &&  ( git switch $VERSION || git switch -c $VERSION ) && rm *.go ) 
 
       - id: gen-go-bindings
         name: Generate go bindings
         run: |
-          for FN in abi/*.json; do
-            MNAME=`echo $FN| sed 's/abi\///;s/.json//'`
+          for FN in `ls -1 abi | grep -v -i test`; do
+            MNAME=`echo $FN| sed 's/.json//'`
             LMNAME=`echo $MNAME| tr '[:upper:]' '[:lower:]'`
             echo $MNAME $LMNAME
-            $GOPATH/bin/abigen --abi $FN --pkg $GO_PKG_NAME --type $LMNAME --out go-contracts/$LMNAME.go
-            ( cd go-contracts && git add $LMNAME.go)
+            $GOPATH/bin/abigen --abi abi/$FN --pkg $GO_PKG_NAME --type $LMNAME --out go-contracts/$LMNAME.go            
           done
-          ( cd go-contracts && git commit -m "Update GO bindings by CI/CD")
+          ( cd go-contracts && git commit . -m "Update GO bindings by CI/CD")
       - id: push_bindings
         name: Push GO bindings
         run: |          
