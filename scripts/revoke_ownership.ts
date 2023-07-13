@@ -1,21 +1,15 @@
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
+import { addresses } from "./addresses";
 
 async function main() {
 
-  // Addresses
-  const MOM = "0x0";
-  const DAD = "0x0";
-  const STAKING = "0x0";
-  const VESTING = "0x0";
-  const NFT = "0x0";
-
   const [signer_deployer, signer_mom, signer_dad, signer_staking, signer_vesting, signer_nft] = await ethers.getSigners();
 
-  const mom = await ethers.getContractAt("MOMToken", MOM);
-  const dad = await ethers.getContractAt("DADToken", DAD);
-  const staking = await ethers.getContractAt("Staking", STAKING);
-  const vesting = await ethers.getContractAt("Vesting", VESTING);
-  const nft = await ethers.getContractAt("OdysseyNFT", NFT);
+  const mom = await ethers.getContractAt("MOMToken", addresses.contracts.mom);
+  const dad = await ethers.getContractAt("DADToken", addresses.contracts.dad);
+  const staking = await ethers.getContractAt("Staking", addresses.contracts.staking);
+  const vesting = await ethers.getContractAt("Vesting", addresses.contracts.vesting);
+  const nft = await ethers.getContractAt("OdysseyNFT",addresses.contracts.nft);
   
   await mom.revokeRole(await mom.MINTER_ROLE(), signer_deployer.address);
   await mom.revokeRole(await mom.BURNER_ROLE(), signer_deployer.address);

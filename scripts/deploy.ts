@@ -1,15 +1,7 @@
 import { ethers, upgrades } from "hardhat";
+import { addresses } from "./addresses";
 
 async function main() {
-
-  // Addresses
-  const TREASURY = "0x0";
-  const CAP_USERS = "0x0";
-  const CAP_PARTNERS = "0x0";
-  const CAP_EXHANGES = "0x0";
-  const CAP_SEED_SALE = "0x0";
-  const CAP_PRIVATE_SALE = "0x0";
-  const CAP_FOUNDERS_TEAM = "0x0";
 
   //Initial supply to be minted.
   const initialSupply = ethers.utils.parseEther("0");
@@ -40,7 +32,7 @@ async function main() {
   console.log(`NFT deployed to ${nft.address}`);
   
   const Staking = await ethers.getContractFactory("Staking");
-  const staking = await upgrades.deployProxy(Staking, [momToken.address, dadToken.address, nft.address, TREASURY],
+  const staking = await upgrades.deployProxy(Staking, [momToken.address, dadToken.address, nft.address, addresses.wallets.treasury],
      { initializer: "initialize", kind: "uups"});
   await staking.deployed();
   console.log(`Staking deployed to ${staking.address}`);
