@@ -85,7 +85,7 @@ jobs:
             echo $MNAME $LMNAME
             $GOPATH/bin/abigen --abi abi/$FN --pkg $GO_PKG_NAME --type $LMNAME --out go-contracts/$LMNAME.go            
           done
-          ( cd go-contracts && git commit . -m "Update GO bindings by CI/CD")
+          ( cd go-contracts && (git commit . -m "Update GO bindings by CI/CD" || true) )
       - id: push_bindings
         name: Push GO bindings
         run: |          
