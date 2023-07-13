@@ -74,7 +74,7 @@ jobs:
         name: checkout go bindings
         run: |
           git clone https://${{ secrets.BACKFEED }}@github.com/momentum-xyz/go-contracts.git          
-          ( cd go-contracts &&  ( git switch $VERSION || git switch -c $VERSION ) && rm *.go ) 
+          ( cd go-contracts &&  ( git switch $VERSION || git switch -c $VERSION ) && rm -f *.go ) 
 
       - id: gen-go-bindings
         name: Generate go bindings
