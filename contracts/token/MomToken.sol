@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "./DADToken.sol";
+import "../vesting/Vesting.sol";
 
 /** 
 * @title MOM Token
@@ -27,13 +29,27 @@ contract MOMToken is ERC20, ERC20Burnable, Pausable, AccessControl {
      */
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
+    /**
+     * @dev Address of the DAD token contract
+     */
+    address immutable dad;
+
+    /**
+     * @dev Address of the Vesting contract
+     */
+    address immutable vesting;
+
     /// Constructor of the contract
-    constructor(uint256 initialSupply) ERC20("Momentum", "MOM") {
+    constructor(uint256 initialSupply, address _vesting, address _dad) ERC20("Momentum", "MOM") {
+        require(_vesting != address(0) && _dad != address(0), "Address should not be 0");
         // assigning all roles to the deployer (owner)
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
         _grantRole(BURNER_ROLE, msg.sender);
+
+        vesting = _vesting;
+        dad = _dad;
 
         // mint the initial supply
         _mint(msg.sender, initialSupply);
@@ -64,6 +80,22 @@ contract MOMToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
         _mint(to, amount);
     }
+
+    /**
+     * @notice Mint DAD tokens to the user, and MOM tokens to the Vesting contract
+     * In this way, all DADs minted through this function will have the same value
+     * in MOMs on the Vesting contract.
+     * @dev Only admin and minter can perform this action
+     * @param to Destination of the new minted tokens
+     * @param amount Amount of tokens to be minted
+     */
+    function mintDad(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+        Vesting(vesting).update_holder(to, amount);
+        DADToken(dad).mint(to, amount);
+        _mint(vesting, amount);
+        
+    }
+
 
     /// @dev Overriding default function, only adding the 'whenNotPaused' modifier
     function _beforeTokenTransfer(
