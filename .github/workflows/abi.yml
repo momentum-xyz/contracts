@@ -83,7 +83,8 @@ jobs:
             MNAME=`echo $FN| sed 's/.json//'`
             LMNAME=`echo $MNAME| tr '[:upper:]' '[:lower:]'`
             echo $MNAME $LMNAME
-            $GOPATH/bin/abigen --abi abi/$FN --pkg $GO_PKG_NAME --type $LMNAME --out go-contracts/$LMNAME.go            
+            $GOPATH/bin/abigen --abi abi/$FN --pkg $GO_PKG_NAME --type $LMNAME --out go-contracts/$LMNAME.go
+            ( cd go-contracts && git add $LMNAME.go )
           done
           ( cd go-contracts && (git commit . -m "Update GO bindings by CI/CD" || true) )
       - id: push_bindings
