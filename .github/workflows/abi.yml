@@ -90,12 +90,9 @@ jobs:
         name: Push GO bindings
         run: |          
           cd go-contracts
-          git branch
           if [ "$REF_KIND" = "branch" ]; then
-            echo Q1
             git push -u origin $VERSION
           elif [ "$REF_KIND" = "tag" ]; then
-          echo Q2
             git tag $VERSION && git push origin $VERSION          
           fi
                     
