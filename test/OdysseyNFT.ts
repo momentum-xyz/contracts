@@ -4,8 +4,6 @@ import { ethers} from "hardhat";
 
 const name = 'Odyssey_NFT';
 const symbol = 'ODS';
-const maxOdysseySupply = 21000;
-const maxTokensPerWallet = 150;
 const URI =  "ipfs://";
 const odyssey_1_id = "604472133179351442128897";
 const odyssey_2_id = "604472133179351442128898";
@@ -17,9 +15,9 @@ describe("deploy contract", function() {
   async function deployContract() {
     const [owner, addr1, addr2, addr3, addr4] = await ethers.getSigners();
     const contract = await ethers.getContractFactory("OdysseyNFT");
-    const OdysseyNFT = await contract.deploy(name, symbol, maxOdysseySupply, maxTokensPerWallet, URI);
+    const OdysseyNFT = await contract.deploy(name, symbol, URI);
 
-    return { OdysseyNFT, name, symbol, maxOdysseySupply, owner, addr1, addr2, addr3, addr4, URI };
+    return { OdysseyNFT, name, symbol, owner, addr1, addr2, addr3, addr4, URI };
   };
 
   describe('constructor', () => {
@@ -27,11 +25,6 @@ describe("deploy contract", function() {
       const { OdysseyNFT, name, symbol } = await loadFixture(deployContract);
       expect(await OdysseyNFT.name()).to.equal(name);
       expect(await OdysseyNFT.symbol()).to.equal(symbol);
-    });
-
-    it('should set the max supply', async () => {
-      const { OdysseyNFT } = await loadFixture(deployContract);
-      expect(await OdysseyNFT.maxTokens()).to.equal(maxOdysseySupply);
     });
   });
 
@@ -58,21 +51,10 @@ describe("deploy contract", function() {
       await expect(await OdysseyNFT.connect(owner).safeMint(addr3.address)).to.emit(OdysseyNFT, "Transfer").withArgs(ethers.constants.AddressZero, addr3.address, await OdysseyNFT.currentId());
     });
 
-    it("should fail to mint an NFT when the maximum number of NFTs per wallet have already been minted", async function () {
-      const { OdysseyNFT, owner, addr1 } = await loadFixture(deployContract);
+    it('should mint not a new NFT to addres 0', async () => {
+      const { OdysseyNFT, owner } = await loadFixture(deployContract);
 
-      await expect(OdysseyNFT.connect(owner).setMaxOdysseysPerWallet(1)).to.not.be.reverted;
-      await expect(OdysseyNFT.connect(owner).safeMint(addr1.address)).to.not.be.reverted;
-      await expect(OdysseyNFT.connect(owner).safeMint(addr1.address)).to.be.revertedWith("Odyssey mints per wallet exceeded");
-    });
-
-    it("should fail to mint an NFT when the max supply is reached", async function () {
-      const { OdysseyNFT, owner, addr1 } = await loadFixture(deployContract);
-
-      OdysseyNFT.connect(owner).safeMint(addr1.address);
-      OdysseyNFT.connect(owner).setMaxTokens(1);
-
-      await expect(OdysseyNFT.connect(owner).safeMint(addr1.address)).to.be.revertedWith("Max Odyssey supply reached");
+      await expect(OdysseyNFT.connect(owner).safeMint(ethers.constants.AddressZero)).to.revertedWith("Cannot mint to address 0");
     });
 
     it("Should mint an NFT and set the correct token URI", async function () {
@@ -101,31 +83,6 @@ describe("deploy contract", function() {
     it("should not allow transfer of non-existent OdysseyNFT", async () => {
       const { OdysseyNFT, addr1, addr2 } = await loadFixture(deployContract);
       expect (OdysseyNFT["safeTransferFrom(address,address,uint256)"](addr1.address, addr2.address, 1)).to.be.revertedWith("ERC721: invalid token ID");
-    });
-  });
-
-  describe("set max tokens that could be minted", async function () {
-    it("should set the maximum amount of OdysseyNFT's which can be minted", async function () {
-      const { OdysseyNFT, owner } = await loadFixture(deployContract);
-  
-      await expect(OdysseyNFT.connect(owner).setMaxTokens(1000)).to.emit(OdysseyNFT, "StateUpdated(string,uint256,uint256)")
-      .withArgs("Max Tokens", maxOdysseySupply, 1000);
-      expect(await OdysseyNFT.maxTokens()).to.equal(1000);
-    });
-
-    it("should revert with max odyssey supply reached", async function () {
-      const { OdysseyNFT, owner, addr1 } = await loadFixture(deployContract);
-  
-      await OdysseyNFT.connect(owner).setMaxTokens(1);
-      expect (OdysseyNFT.connect(owner).safeMint(addr1.address)).to.be.revertedWith("Max Odyssey supply reached");
-    });
-
-    it("should set the maximum amount of OdysseyNFT's which can be minted per wallet", async function () {
-      const { OdysseyNFT, owner } = await loadFixture(deployContract);
-  
-      await expect(OdysseyNFT.connect(owner).setMaxOdysseysPerWallet(10)).to.emit(OdysseyNFT, "StateUpdated(string,uint256,uint256)")
-      .withArgs("Max Odysseys per Wallet", maxTokensPerWallet, 10);
-      expect(await OdysseyNFT.maxOdysseysPerWallet()).to.equal(10);
     });
   });
 

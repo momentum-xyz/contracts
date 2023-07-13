@@ -20,6 +20,11 @@ contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     
     /**
+     * @notice Role that can mint tokens.
+     */
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+
+    /**
      * @notice Role that can transfer tokens.
      */
     bytes32 public constant TRANSFER_ROLE = keccak256("TRANSFER_ROLE");
@@ -28,7 +33,9 @@ contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
     constructor() ERC20("Momentum", "DAD") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(BURNER_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
         _grantRole(TRANSFER_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
     }
 
     /// @notice Pauses the contract, no actions will be allowed until it is unpaused
@@ -43,11 +50,11 @@ contract DADToken is ERC20, ERC20Burnable, Pausable, AccessControl {
 
     /**
      * @notice Mint new tokens
-     * @dev Only admin can perform this action
+     * @dev Only minter can perform this action
      * @param to Destination of the new minted tokens
      * @param amount Amount of tokens to be minted
      */
-    function mint(address to, uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
         _mint(to, amount);
     }
 

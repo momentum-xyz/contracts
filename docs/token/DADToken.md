@@ -14,6 +14,14 @@ bytes32 BURNER_ROLE
 
 Role that can burn tokens.
 
+### MINTER_ROLE
+
+```solidity
+bytes32 MINTER_ROLE
+```
+
+Role that can mint tokens.
+
 ### TRANSFER_ROLE
 
 ```solidity
@@ -54,7 +62,7 @@ function mint(address to, uint256 amount) public
 
 Mint new tokens
 
-_Only admin can perform this action_
+_Only minter can perform this action_
 
 #### Parameters
 
