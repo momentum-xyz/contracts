@@ -7,7 +7,7 @@ export const addresses = {
         nft: "0x0",
     },
     wallets : {
-        treasury: "0x0",
+        treasury: "0xE9ceA79CCA526C6847519D4263A56d4b03DcA7b9",
         users : "0x0",
         partners : "0x0",
         exchanges : "0x0",

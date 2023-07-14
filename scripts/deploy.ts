@@ -1,5 +1,7 @@
 import { ethers, upgrades } from "hardhat";
 import { addresses } from "./addresses";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
+
 
 async function main() {
 
@@ -11,7 +13,7 @@ async function main() {
   await dadToken.deployed();
   console.log(`DAD Token deployed to ${dadToken.address}`);
 
-  const starting_date = 0;//TBD (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp + DAYS;
+  const starting_date = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp + time.duration.days(365);
   const Vesting = await ethers.getContractFactory("Vesting");
   const vesting = await Vesting.deploy(dadToken.address, starting_date);
   await vesting.deployed();
@@ -26,7 +28,7 @@ async function main() {
   const nft = await Nft.deploy(
     "Odysseys", 
     "ONFT",
-    "http://IPFS/url"
+    "https://play.odyssey.org/api/v4/nft/"
     );
     await nft.deployed();
   console.log(`NFT deployed to ${nft.address}`);
@@ -55,6 +57,9 @@ async function main() {
   await vesting.set_mom_address(momToken.address);
   console.log("MOM address set on vesting contract");
 
+  const staking_ = await ethers.getContractAt("Staking",staking.address);
+  console.log(staking_.address);
+  await staking_.grantRole(await staking_.MANAGER_ROLE(), "0x297c363A95e8ac2EbD7e98f004e0fc9Ba33cF81c");
 }
 
 
