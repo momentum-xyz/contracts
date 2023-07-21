@@ -28,7 +28,7 @@ const config: HardhatUserConfig = {
     arb_nova: {
       url: `https://nova.arbitrum.io/rpc`,
       chainId: 42170,
-      accounts: [""]
+      accounts: ["0x0000000000000000000000000000000000000000"]
     }
   },
 };
