@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "../token/MomToken.sol";
 import "../nft/OdysseyNFT.sol";
 
@@ -41,9 +42,15 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     mapping(uint256 => uint256) nodes_index;
     mapping(uint256 => NodeIndex) node_from_odyssey;
+    mapping(uint256 => uint256) odysseys_index;
     mapping(uint256 => uint256[]) odysseys;
     
     Node[] nodes;
+
+    /**
+     * @notice storage gap for upgrades
+     */
+    uint256[50] __gap;
 
     event FeeUpdated(uint256 old_fee, uint256 new_fee);
     event NodeRemoved(uint256 indexed node_id);
@@ -95,16 +102,92 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
        return (v, r, s);
    }
 
-    function setNodeMaping() public {
+    function recoverSigner(bytes32 message, bytes calldata sig)
+        internal
+        pure
+        returns (address)
+    {
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
 
+        (v, r, s) = splitSignature(sig);
+
+        return ecrecover(message, v, r, s);
     }
 
-    function setOdysseyMapping() public {
-
+    function prefixed(bytes32 message) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
     }
 
-    function removeMapping() public {
+    function getNodeForTheOdyssey(uint256 odyssey_id) public view returns(Node memory) {
+        require(odyssey_id != 0, "Invalid input");
+        require(node_from_odyssey[odyssey_id].index != 0, "Odyssey not in a node");
+        return nodes[node_from_odyssey[odyssey_id].index];
+    }
 
+    function getNode(uint256 node_id) public view returns(Node memory) {
+        require(node_id != 0,"Invalid input");
+        require(nodes_index[node_id] != 0, "Node not mapped");
+        return nodes[nodes_index[node_id]];
+    }
+
+    function setNodeMaping(uint256 node_id, uint256 odyssey_id, bytes calldata challenge) public {
+        require(node_id != 0 && odyssey_id != 0 && challenge.length != 0, "Invalid Input");
+        require(OdysseyNFT(odyssey_nft).exists(odyssey_id), "Odyssey dont exists");
+        require(nodes_index[node_id] != 0 && nodes[nodes_index[node_id]].owner != msg.sender,
+            "Invalid node ID or user is not node owner");
+        require(odysseys_index[odyssey_id] == 0, "Odyssey already in a node");
+
+        bytes32 message = prefixed(keccak256(abi.encodePacked(node_id, odyssey_id)));
+        address odyssey_owner = OdysseyNFT(odyssey_nft).ownerOf(odyssey_id);
+        require(recoverSigner(message, challenge) == odyssey_owner, "Invalid Message");
+
+        if(odysseys[node_id].length == 0) {
+            odysseys[node_id].push(0);
+        }
+        odysseys_index[odyssey_id] = odysseys[node_id].length;
+        odysseys[node_id].push(odyssey_id);
+        node_from_odyssey[odyssey_id] = NodeIndex(node_id, nodes_index[node_id]);
+        
+        emit NodeMngmtEvent(0, node_id, odyssey_id);
+    }
+
+    function setOdysseyMapping(uint256 node_id, uint256 odyssey_id, bytes calldata challenge) public {
+        require(node_id != 0 && odyssey_id != 0 && challenge.length != 0, "Invalid Input");
+        require(OdysseyNFT(odyssey_nft).exists(odyssey_id) && OdysseyNFT(odyssey_nft).ownerOf(odyssey_id) == msg.sender,
+            "Odyssey dont exists or user is not owner.");
+        require(nodes_index[node_id] != 0, "Invalid node ID");
+        require(odysseys_index[odyssey_id] == 0, "Odyssey already in a node");
+
+        bytes32 message = prefixed(keccak256(abi.encodePacked(node_id, odyssey_id)));
+        require(recoverSigner(message, challenge) == nodes[nodes_index[node_id]].owner, "Invalid Message");
+
+        if(odysseys[node_id].length == 0) {
+            odysseys[node_id].push(0);
+        }
+        odysseys_index[odyssey_id] = odysseys[node_id].length;
+        odysseys[node_id].push(odyssey_id);
+        node_from_odyssey[odyssey_id] = NodeIndex(node_id, nodes_index[node_id]);
+        
+        emit NodeMngmtEvent(0, node_id, odyssey_id);
+    }
+
+    function removeMapping(uint256 node_id, uint256 odyssey_id) public {
+        require(node_id != 0 && odyssey_id != 0, "Invalid Input");
+        require(nodes_index[node_id] != 0 && OdysseyNFT(odyssey_nft).exists(odyssey_id), "invalid Node or Odyssey");
+        require(msg.sender == nodes[nodes_index[node_id]].owner || OdysseyNFT(odyssey_nft).ownerOf(odyssey_id) == msg.sender,
+            "User is not the node owner or the Odyssey owner");
+        require(odysseys_index[odyssey_id] != 0 && node_from_odyssey[odyssey_id].node_id == node_id, "Odyssey not in the Node");
+
+        uint256 odyssey_index = odysseys_index[odyssey_id];
+        uint256 last_odyssey = odysseys[node_id][odysseys[node_id].length-1];
+        odysseys[node_id][odysseys[node_id].length-1] = odyssey_id;
+        odysseys[node_id][odyssey_index] = last_odyssey;
+        odysseys[node_id].pop();
+
+        odysseys_index[last_odyssey] = odyssey_index;
+        odysseys_index[odyssey_id] = 0;
     }
 
     function updateNodeOwner(uint256 node_id, address new_owner) public {
@@ -138,7 +221,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         
         IERC20(mom_token).safeTransferFrom(payable(msg.sender), address(this), fee);
         
-        // add index mapping
+        nodes_index[node_id] = nodes.length;
 
         Node memory node = Node(node_id, name, msg.sender, hostname);
         nodes.push(node);
@@ -162,6 +245,5 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         nodes_index[node.node_id] = 0;
 
         emit NodeMngmtEvent(node_id, 0, 0);
-
     }
 }
