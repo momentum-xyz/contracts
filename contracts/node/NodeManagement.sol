@@ -23,28 +23,67 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         _disableInitializers();
     }
 
+    /**
+     * @notice MOM token address
+     */
     address mom_token;
+    
+    /**
+     * @notice Odyssey NFT's token address
+     */    
     address odyssey_nft;
+    
+    /**
+     * @notice Treasury address
+     */    
     address treasury;
+    
+    /**
+     * @notice Fee to register a node
+     */    
     uint256 fee;
 
+    /**
+     * @dev Node struct with info about the node
+     */
     struct Node {
         uint256 node_id;
+        string name;
         string hostname;
         address owner;
-        string name;
     }
-
+    
+    /**
+     * @dev Struct to facilitate the search of a Node
+     */
     struct NodeIndex {
         uint256 node_id;
         uint256 index;
     }
 
+    /**
+     * @notice Map the Node ID to the it's index in the vector
+     */
     mapping(uint256 => uint256) nodes_index;
+    
+    /**
+     * @notice Map an Odyssey ID to it's node index
+     */
     mapping(uint256 => NodeIndex) node_from_odyssey;
+    
+    /**
+     * @notice Map an Odyssey ID to it's index in the vector
+     */
     mapping(uint256 => uint256) odysseys_index;
+    
+    /**
+     * @notice Map a Node ID to it's vector of Odysseys
+     */
     mapping(uint256 => uint256[]) odysseys;
     
+    /**
+     * @notice Nodes mapped
+     */
     Node[] nodes;
 
     /**
@@ -52,17 +91,53 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      */
     uint256[50] __gap;
 
+    /**
+     * 
+     * @param old_fee Previous set fee
+     * @param new_fee New fee being set
+     */
     event FeeUpdated(uint256 old_fee, uint256 new_fee);
+    
+    /**
+     * 
+     * @param node_id Node ID from the removed node
+     */
     event NodeRemoved(uint256 indexed node_id);
+    
+    /**
+     * 
+     * @param node_id Node's ID
+     * @param old_owner Previous owner of the node
+     * @param new_owner New owner of the node
+     * @param old_hostname Previous hostname of the node
+     * @param new_hostname New hostname of the node
+     * @param old_name Previous Node's name
+     * @param new_name New Node's name
+     */
     event NodeUpdated(uint256 indexed node_id, address old_owner, address new_owner, string old_hostname, string new_hostname, string old_name, string new_name);
+    
+    /**
+     * 
+     * @param from_node_id From this Node ID
+     * @param to_node_id To this Node ID
+     * @param odyssey_id Odyssey's ID
+     */
     event NodeMngmtEvent(uint256 indexed from_node_id , uint256 indexed to_node_id , uint256 indexed odyssey_id);
 
+
+    /**
+     * @dev Initializer of the contract, is called when deploying
+     * @param _odyssey_nft Odyssey NFT contract address
+     * @param _treasury Treasury address
+     * @param _fee initial fee to map node
+     * @param _mom_token MOM Token contract address
+     */
     function initialize(address _odyssey_nft, address _treasury, uint256 _fee, address _mom_token ) initializer public {
         odyssey_nft = _odyssey_nft;
         treasury = _treasury;
         fee = _fee;
         mom_token = _mom_token;
-        nodes.push(Node(0, "", address(0), ""));
+        nodes.push(Node(0, "", "", address(0)));
         __Ownable_init();
         __UUPSUpgradeable_init();
     }
@@ -73,12 +148,23 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         override
     {}
 
+    /**
+     * @dev Update the current fee
+     * @param new_fee New fee value to map a node
+     */
     function update_fee(uint256 new_fee) public onlyOwner {
         uint256 old_fee = fee;
         fee = new_fee;
         emit FeeUpdated(old_fee, new_fee);
     }
 
+    /**
+     * @dev Splits the signature from a signed message
+     * @param sig Signed message
+     * @return R part from signature
+     * @return S part from signature
+     * @return V part from signature
+     */
     function splitSignature(bytes memory sig)
        public
        pure
@@ -102,6 +188,12 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
        return (v, r, s);
    }
 
+    /**
+     * @dev Recover's the signer of the message
+     * @param message Prefixed message
+     * @param sig Signed message
+     * @return Address that signed the message
+     */
     function recoverSigner(bytes32 message, bytes calldata sig)
         internal
         pure
@@ -116,22 +208,44 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         return ecrecover(message, v, r, s);
     }
 
+    /**
+     * @dev Prefix a message with ETH default prefix
+     * @param message Message without prefix
+     * @return Prefixed message
+     */
     function prefixed(bytes32 message) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
     }
 
+    /**
+     * @dev Get a node from an Odyssey ID
+     * @param odyssey_id Odyssey ID
+     * @return Node that the Odyssey is mapped to
+     */
     function getNodeForTheOdyssey(uint256 odyssey_id) public view returns(Node memory) {
         require(odyssey_id != 0, "Invalid input");
         require(node_from_odyssey[odyssey_id].index != 0, "Odyssey not in a node");
         return nodes[node_from_odyssey[odyssey_id].index];
     }
 
+    /**
+     * @dev Get a node from it's ID
+     * @param node_id Node's ID 
+     * @return Node 
+     */
     function getNode(uint256 node_id) public view returns(Node memory) {
         require(node_id != 0,"Invalid input");
         require(nodes_index[node_id] != 0, "Node not mapped");
         return nodes[nodes_index[node_id]];
     }
 
+    /**
+     * @dev Set a new mapping by a Node. This is done by checking a challenge.
+     * The message should be signed by the Odyssey owner and the contents should be "<NodeID><OdysseyID>"
+     * @param node_id Node's ID
+     * @param odyssey_id Odyssey's ID
+     * @param challenge Challange to be checked
+     */
     function setNodeMaping(uint256 node_id, uint256 odyssey_id, bytes calldata challenge) public {
         require(node_id != 0 && odyssey_id != 0 && challenge.length != 0, "Invalid Input");
         require(OdysseyNFT(odyssey_nft).exists(odyssey_id), "Odyssey dont exists");
@@ -153,6 +267,13 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         emit NodeMngmtEvent(0, node_id, odyssey_id);
     }
 
+    /**
+     * @dev Set a new mapping by a Node. This is done by checking a challenge.
+     * The message should be signed by the Node owner and the contents should be "<NodeID><OdysseyID>"
+     * @param node_id Node's ID
+     * @param odyssey_id Odyssey's ID
+     * @param challenge Challange to be checked
+     */
     function setOdysseyMapping(uint256 node_id, uint256 odyssey_id, bytes calldata challenge) public {
         require(node_id != 0 && odyssey_id != 0 && challenge.length != 0, "Invalid Input");
         require(OdysseyNFT(odyssey_nft).exists(odyssey_id) && OdysseyNFT(odyssey_nft).ownerOf(odyssey_id) == msg.sender,
@@ -173,6 +294,11 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         emit NodeMngmtEvent(0, node_id, odyssey_id);
     }
 
+    /**
+     * @dev Removes a mapping. This can be done either by Odyssey or Node owners.
+     * @param node_id Node's ID
+     * @param odyssey_id Odyssey's ID
+     */
     function removeMapping(uint256 node_id, uint256 odyssey_id) public {
         require(node_id != 0 && odyssey_id != 0, "Invalid Input");
         require(nodes_index[node_id] != 0 && OdysseyNFT(odyssey_nft).exists(odyssey_id), "invalid Node or Odyssey");
@@ -190,6 +316,11 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         odysseys_index[odyssey_id] = 0;
     }
 
+    /**
+     * @dev Updates the Node Owner
+     * @param node_id Node's ID to be updated
+     * @param new_owner Address of the new owner
+     */
     function updateNodeOwner(uint256 node_id, address new_owner) public {
         require(node_id != 0 && new_owner != address(0), "Invalid input");
         uint256 node_index = nodes_index[node_id];
@@ -202,6 +333,12 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         emit NodeUpdated(node_id, msg.sender, new_owner, "", "", "", "");
     }
 
+    /**
+     * @dev Updates a node info
+     * @param node_id Node's ID
+     * @param hostname New Node's hostname
+     * @param name New Node's name
+     */
     function updateNode(uint256 node_id, string calldata hostname, string calldata name) public {
         require(node_id != 0 && bytes(hostname).length != 0  && bytes(name).length != 0, "Invalid input");
         uint256 node_index = nodes_index[node_id];
@@ -216,25 +353,37 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         emit NodeUpdated(node_id, msg.sender, address(0), old_hostname, hostname, old_name, name);
     }
 
+    /**
+     * @dev Adds(register) a node
+     * @param node_id Node's ID
+     * @param hostname Node's hostname
+     * @param name Node's name
+     */
     function addNode(uint256 node_id, string calldata hostname, string calldata name) public {
         require(node_id != 0 && bytes(hostname).length != 0  && bytes(name).length != 0 && msg.sender != address(0), "Invalid input" );
+        require(nodes_index[node_id] == 0, "Node already mapped");
         
         IERC20(mom_token).safeTransferFrom(payable(msg.sender), address(this), fee);
         
         nodes_index[node_id] = nodes.length;
 
-        Node memory node = Node(node_id, name, msg.sender, hostname);
+        Node memory node = Node(node_id, name, hostname, msg.sender);
         nodes.push(node);
 
         emit NodeUpdated(node_id, address(0), msg.sender, "", hostname, "", name);
     }
 
+    /**
+     * @dev Remove a node
+     * @param node_id Node's ID
+     */
     function removeNode(uint256 node_id) public {
         require(node_id != 0, "Invalid input");
         uint256 node_index = nodes_index[node_id];
         require(node_index != 0, "Node not registered");
         Node memory node = nodes[node_index];
-        require(odysseys[node_id].length > 0, "There are Odysseys in this node");
+        // The first Odyssey on the mapping is a dummy one
+        require(odysseys[node_id].length <= 1, "There are Odysseys mapped to this node");
 
         Node memory last_node = nodes[nodes.length-1];
         nodes[nodes.length-1] = node;
