@@ -224,7 +224,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      */
     function getNodeForTheOdyssey(uint256 odyssey_id) public view returns(Node memory) {
         require(odyssey_id != 0, "Invalid input");
-        require(node_from_odyssey[odyssey_id].index != 0, "Odyssey not in a node");
+        require(node_from_odyssey[odyssey_id].index != 0 && odysseys_index[odyssey_id] != 0, "Odyssey not in a node");
         return nodes[node_from_odyssey[odyssey_id].index];
     }
 
