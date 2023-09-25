@@ -246,7 +246,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param odyssey_id Odyssey's ID
      * @param challenge Challange to be checked
      */
-    function setNodeMaping(uint256 node_id, uint256 odyssey_id, bytes calldata challenge) public {
+    function setNodeMapping(uint256 node_id, uint256 odyssey_id, bytes calldata challenge) public {
         require(node_id != 0 && odyssey_id != 0 && challenge.length != 0, "Invalid Input");
         require(OdysseyNFT(odyssey_nft).exists(odyssey_id), "Odyssey dont exists");
         require(nodes_index[node_id] != 0 && nodes[nodes_index[node_id]].owner == msg.sender,
