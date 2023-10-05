@@ -224,7 +224,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      */
     function getNodeForTheOdyssey(uint256 odyssey_id) public view returns(Node memory) {
         require(odyssey_id != 0, "Invalid input");
-        require(node_from_odyssey[odyssey_id].index != 0, "Odyssey not in a node");
+        require(node_from_odyssey[odyssey_id].index != 0 && odysseys_index[odyssey_id] != 0, "Odyssey not in a node");
         return nodes[node_from_odyssey[odyssey_id].index];
     }
 
@@ -246,10 +246,10 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param odyssey_id Odyssey's ID
      * @param challenge Challange to be checked
      */
-    function setNodeMaping(uint256 node_id, uint256 odyssey_id, bytes calldata challenge) public {
+    function setNodeMapping(uint256 node_id, uint256 odyssey_id, bytes calldata challenge) public {
         require(node_id != 0 && odyssey_id != 0 && challenge.length != 0, "Invalid Input");
         require(OdysseyNFT(odyssey_nft).exists(odyssey_id), "Odyssey dont exists");
-        require(nodes_index[node_id] != 0 && nodes[nodes_index[node_id]].owner != msg.sender,
+        require(nodes_index[node_id] != 0 && nodes[nodes_index[node_id]].owner == msg.sender,
             "Invalid node ID or user is not node owner");
         require(odysseys_index[odyssey_id] == 0, "Odyssey already in a node");
 
