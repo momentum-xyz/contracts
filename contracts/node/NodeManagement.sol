@@ -413,12 +413,12 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /**
-     * @dev Adds(register) a node
+     * @dev Adds(register) a node, private, used by public methods
      * @param node_id Node's ID
      * @param hostname Node's hostname
      * @param name Node's name
      */
-    function addNode(uint256 node_id, string calldata hostname, string calldata name, bytes32 pubkey) internal {
+    function _addNode(uint256 node_id, string calldata hostname, string calldata name, bytes32 pubkey) internal {
         nodes_index[node_id] = nodes.length;
 
         Node memory node = Node(node_id, name, hostname, msg.sender, pubkey,calculateAddress(pubkey));
@@ -426,7 +426,6 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
         emit NodeUpdated(node_id, address(0), msg.sender, "", hostname, "", name);
     }
-
 
     /**
      * @dev Adds(register) a node with MOM payment
@@ -438,7 +437,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         require(node_id != 0 && bytes(hostname).length != 0 && bytes(name).length != 0 && msg.sender != address(0), "Invalid input");
         require(nodes_index[node_id] == 0, "Node already mapped");
         IERC20(mom_token).safeTransferFrom(payable(msg.sender), address(this), feeMom);
-        addNode(node_id,hostname,name,pubkey);
+        _addNode(node_id,hostname,name,pubkey);
 
     }
 
@@ -454,7 +453,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 //
 //        E.safeTransferFrom(payable(msg.sender), address(this), feeETH);
 
-        addNode(node_id,hostname,name,pubkey);
+        _addNode(node_id,hostname,name,pubkey);
     }
 
     /**
