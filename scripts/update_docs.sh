@@ -15,5 +15,6 @@ sol2uml class ./contracts/token/DADToken.sol -f png -o ./docs/images/dad
 sol2uml class ./contracts/token/MomToken.sol -f png -o ./docs/images/mom
 sol2uml class ./contracts/nft/OdysseyNFT.sol -f png -o ./docs/images/nft
 sol2uml class ./contracts/staking/Staking.sol -f png -o ./docs/images/stake
+sol2uml class ./contracts/node/NodeManagement.sol -f png -o ./docs/images/node
 sol2uml class ./contracts/vesting/Vesting.sol -f png -o ./docs/images/vesting
 sol2uml class ./contracts -f png -o ./docs/images/

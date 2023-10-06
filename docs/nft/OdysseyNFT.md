@@ -16,20 +16,6 @@ It will increase when minting, and decrease when burning.
 ### StateUpdated
 
 ```solidity
-event StateUpdated(string state, uint256 from, uint256 to)
-```
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| state | string | State variable name |
-| from | uint256 | from value |
-| to | uint256 | to value |
-
-### StateUpdated
-
-```solidity
 event StateUpdated(string state, string from, string to)
 ```
 
@@ -103,6 +89,14 @@ Mints new OdysseyNFT for the user
 | ---- | ---- | ----------- |
 | to | address | The user address to mint the NFT |
 
+### transferFrom
+
+```solidity
+function transferFrom(address from, address to, uint256 tokenId) public virtual
+```
+
+_See {IERC721-transferFrom}._
+
 ### safeTransferFrom
 
 ```solidity
@@ -118,6 +112,14 @@ Transfers OdysseyNFT from owner to buyer
 | from | address | Accountid of OdysseyNFT owner |
 | to | address | Accountid of OdysseyNFT buyer |
 | tokenId | uint256 | The OdysseyId to transfer |
+
+### safeTransferFrom
+
+```solidity
+function safeTransferFrom(address from, address to, uint256 tokenId, bytes data) public virtual
+```
+
+_See {IERC721-safeTransferFrom}._
 
 ### setbaseURI
 
