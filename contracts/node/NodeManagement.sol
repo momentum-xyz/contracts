@@ -60,6 +60,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         string hostname;
         address owner;
         bytes32 pubkey;
+        address node_account;
     }
 
     /**
@@ -155,7 +156,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         feeETH = _feeEth;
         feeMom = _feeMom;
         mom_token = _mom_token;
-        nodes.push(Node(0, "", "", address(0),bytes32(0)));
+        nodes.push(Node(0, "", "", address(0),bytes32(0),address(0)));
         __Ownable_init();
         __UUPSUpgradeable_init();
     }
@@ -249,26 +250,6 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /**
-     * @dev Recover's public key of the signer of the message
-     * @param message Prefixed message
-     * @param sig Signed message
-     * @return Address that signed the message
-     */
-    function recoverSignerPublicKey(bytes32 message, bytes calldata sig)
-    internal
-    pure
-    returns (bytes32) {
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-
-        (v, r, s) = splitSignature(sig);
-
-        (uint256 x, uint256 y) = SECP256K1.recover(uint256(message), v - 27, uint256(r), uint256(s));
-        return bytes32(abi.encodePacked(x, y));
-    }
-
-    /**
      * @dev Prefix a message with ETH default prefix
      * @param message Message without prefix
      * @return Prefixed message
@@ -310,7 +291,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         require(node_id != 0 && odyssey_id != 0 && challenge.length != 0, "Invalid Input");
         require(OdysseyNFT(odyssey_nft).exists(odyssey_id), "Odyssey dont exists");
         require(nodes_index[node_id] != 0 && (nodes[nodes_index[node_id]].owner == msg.sender
-            || calculateAddress(nodes[nodes_index[node_id]].pubkey) == msg.sender),
+            || nodes[nodes_index[node_id]].node_account == msg.sender),
             "Invalid node ID or user is not node owner");
         require(odysseys_index[odyssey_id] == 0, "Odyssey already in a node");
 
@@ -343,7 +324,8 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         require(odysseys_index[odyssey_id] == 0, "Odyssey already in a node");
 
         bytes32 message = prefixed(keccak256(abi.encodePacked(node_id, odyssey_id)));
-        require(recoverSigner(message, challenge) == nodes[nodes_index[node_id]].owner || recoverSignerPublicKey(message, challenge) == nodes[nodes_index[node_id]].pubkey, "Invalid Message");
+        address signer = recoverSigner(message, challenge);
+        require(signer == nodes[nodes_index[node_id]].owner || signer == nodes[nodes_index[node_id]].node_account, "Invalid Message");
 
         if (odysseys[node_id].length == 0) {
             odysseys[node_id].push(0);
@@ -363,7 +345,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     function removeMapping(uint256 node_id, uint256 odyssey_id) public {
         require(node_id != 0 && odyssey_id != 0, "Invalid Input");
         require(nodes_index[node_id] != 0 && OdysseyNFT(odyssey_nft).exists(odyssey_id), "invalid Node or Odyssey");
-        require(msg.sender == nodes[nodes_index[node_id]].owner || msg.sender == calculateAddress(nodes[nodes_index[node_id]].pubkey) ||
+        require(msg.sender == nodes[nodes_index[node_id]].owner || msg.sender == nodes[nodes_index[node_id]].node_account ||
             OdysseyNFT(odyssey_nft).ownerOf(odyssey_id) == msg.sender,
             "User is not the node owner or the Odyssey owner");
         require(odysseys_index[odyssey_id] != 0 && node_from_odyssey[odyssey_id].node_id == node_id, "Odyssey not in the Node");
@@ -408,6 +390,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         require(node.owner == msg.sender, "User is not the node owner");
 
         node.pubkey = new_pubkey;
+        node.node_account = calculateAddress(new_pubkey);
     }
 
     /**
@@ -421,7 +404,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         uint256 node_index = nodes_index[node_id];
         require(node_index != 0, "Node not registered");
         Node storage node = nodes[node_index];
-        require(node.owner == msg.sender && calculateAddress(node.pubkey) == msg.sender, "Must be called by node or owner");
+        require(node.owner == msg.sender && node.node_account == msg.sender, "Must be called by node or owner");
         string memory old_hostname = node.hostname;
         string memory old_name = node.name;
         node.hostname = hostname;
@@ -436,22 +419,32 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param hostname Node's hostname
      * @param name Node's name
      */
-    function addNodeWithMom(uint256 node_id, string calldata hostname, string calldata name, bytes32 pubkey) public {
-        require(node_id != 0 && bytes(hostname).length != 0 && bytes(name).length != 0 && msg.sender != address(0), "Invalid input");
-        require(nodes_index[node_id] == 0, "Node already mapped");
-
-        IERC20(mom_token).safeTransferFrom(payable(msg.sender), address(this), feeMom);
-
+    function addNode(uint256 node_id, string calldata hostname, string calldata name, bytes32 pubkey) internal {
         nodes_index[node_id] = nodes.length;
 
-        Node memory node = Node(node_id, name, hostname, msg.sender, pubkey);
+        Node memory node = Node(node_id, name, hostname, msg.sender, pubkey,calculateAddress(pubkey));
         nodes.push(node);
 
         emit NodeUpdated(node_id, address(0), msg.sender, "", hostname, "", name);
     }
 
+
     /**
-     * @dev Adds(register) a node
+     * @dev Adds(register) a node with MOM payment
+     * @param node_id Node's ID
+     * @param hostname Node's hostname
+     * @param name Node's name
+     */
+    function addNodeWithMom(uint256 node_id, string calldata hostname, string calldata name, bytes32 pubkey) public {
+        require(node_id != 0 && bytes(hostname).length != 0 && bytes(name).length != 0 && msg.sender != address(0), "Invalid input");
+        require(nodes_index[node_id] == 0, "Node already mapped");
+        IERC20(mom_token).safeTransferFrom(payable(msg.sender), address(this), feeMom);
+        addNode(node_id,hostname,name,pubkey);
+
+    }
+
+    /**
+     * @dev Adds(register) a node with ETH payment
      * @param node_id Node's ID
      * @param hostname Node's hostname
      * @param name Node's name
@@ -459,15 +452,10 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     function addNodeWithEth(uint256 node_id, string calldata hostname, string calldata name, bytes32 pubkey) public {
         require(node_id != 0 && bytes(hostname).length != 0 && bytes(name).length != 0 && msg.sender != address(0), "Invalid input");
         require(nodes_index[node_id] == 0, "Node already mapped");
-
+//
 //        E.safeTransferFrom(payable(msg.sender), address(this), feeETH);
 
-        nodes_index[node_id] = nodes.length;
-
-        Node memory node = Node(node_id, name, hostname, msg.sender, pubkey);
-        nodes.push(node);
-
-        emit NodeUpdated(node_id, address(0), msg.sender, "", hostname, "", name);
+        addNode(node_id,hostname,name,pubkey);
     }
 
     /**
