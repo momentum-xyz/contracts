@@ -58,7 +58,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         string name;
         string hostname;
         address owner;
-        bytes32 pubkey;
+        bytes pubkey;
         address node_account;
     }
 
@@ -155,7 +155,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         feeETH = _feeEth;
         feeMom = _feeMom;
         mom_token = _mom_token;
-        nodes.push(Node(0, "", "", address(0),bytes32(0),address(0)));
+        nodes.push(Node(0, "", "", address(0),"",address(0)));
         __Ownable_init();
         __UUPSUpgradeable_init();
     }
@@ -221,11 +221,12 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param pubkey Public key
      * @return Address that corresponds to public key
     */
-    function calculateAddress(bytes32 pubkey)
+    function calculateAddress(bytes memory pubkey)
     internal
     pure
     returns (address){
-        return address(bytes20(keccak256( abi.encodePacked(pubkey))));
+//        return address(bytes20(keccak256( abi.encodePacked(pubkey))));
+        return address(bytes20(keccak256(pubkey)));
     }
 
     /**
@@ -381,8 +382,8 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param node_id Node's ID to be updated
      * @param new_pubkey new public key
      */
-    function updateNodePubkey(uint256 node_id, bytes32 new_pubkey) public {
-        require(node_id != 0 && new_pubkey != bytes32(0), "Invalid input");
+    function updateNodePubkey(uint256 node_id, bytes calldata new_pubkey) public {
+        require(node_id != 0 && new_pubkey.length == 64, "Invalid input");
         uint256 node_index = nodes_index[node_id];
         require(node_index != 0, "Node not registered");
         Node storage node = nodes[node_index];
@@ -418,7 +419,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param hostname Node's hostname
      * @param name Node's name
      */
-    function _addNode(uint256 node_id, string calldata hostname, string calldata name, bytes32 pubkey) internal {
+    function _addNode(uint256 node_id, string memory hostname, string memory name, bytes memory pubkey) internal {
         nodes_index[node_id] = nodes.length;
 
         Node memory node = Node(node_id, name, hostname, msg.sender, pubkey,calculateAddress(pubkey));
@@ -433,8 +434,8 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param hostname Node's hostname
      * @param name Node's name
      */
-    function addNodeWithMom(uint256 node_id, string calldata hostname, string calldata name, bytes32 pubkey) public {
-        require(node_id != 0 && bytes(hostname).length != 0 && bytes(name).length != 0 && msg.sender != address(0), "Invalid input");
+    function addNodeWithMom(uint256 node_id, string calldata hostname, string calldata name, bytes calldata pubkey) public {
+        require(node_id != 0 && bytes(hostname).length != 0 && bytes(name).length != 0 && msg.sender != address(0) && pubkey.length==64, "Invalid input");
         require(nodes_index[node_id] == 0, "Node already mapped");
         IERC20(mom_token).safeTransferFrom(payable(msg.sender), address(this), feeMom);
         _addNode(node_id,hostname,name,pubkey);
@@ -447,7 +448,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param hostname Node's hostname
      * @param name Node's name
      */
-    function addNodeWithEth(uint256 node_id, string calldata hostname, string calldata name, bytes32 pubkey) public {
+    function addNodeWithEth(uint256 node_id, string calldata hostname, string calldata name, bytes calldata pubkey) public {
         require(node_id != 0 && bytes(hostname).length != 0 && bytes(name).length != 0 && msg.sender != address(0), "Invalid input");
         require(nodes_index[node_id] == 0, "Node already mapped");
 //
