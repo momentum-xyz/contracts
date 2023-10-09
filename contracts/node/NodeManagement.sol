@@ -291,6 +291,16 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
     }
 
+
+    /**
+     * @dev Get number of registered nodes
+     * @return Node that the Odyssey is mapped to
+     */
+    function nodesCount() public view returns (uint256) {
+        return nodes.length;
+    }
+
+
     /**
      * @dev Get a node from an Odyssey ID
      * @param odyssey_id Odyssey ID
