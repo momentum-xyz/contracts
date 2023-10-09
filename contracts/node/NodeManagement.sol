@@ -419,8 +419,8 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         Node storage node = nodes[node_index];
         require(node.owner == msg.sender, "User is not the node owner");
 
-        node.pubkey = new_pubkey;
-        node.node_account = calculateAddress(new_pubkey);
+        node.pubkey = sanitizePublicKey(new_pubkey);
+        node.node_account = calculateAddress(node.pubkey);
     }
 
     /**
@@ -449,10 +449,10 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param hostname Node's hostname
      * @param name Node's name
      */
-    function _addNode(uint256 node_id, string memory hostname, string memory name, bytes memory pubkey) internal {
+    function _addNode(uint256 node_id, string memory hostname, string memory name, bytes calldata pubkey) internal {
         nodes_index[node_id] = nodes.length;
 
-        Node memory node = Node(node_id, name, hostname, msg.sender, pubkey,calculateAddress(pubkey));
+        Node memory node = Node(node_id, name, hostname, msg.sender, sanitizePublicKey(pubkey),calculateAddress(pubkey));
         nodes.push(node);
 
         emit NodeUpdated(node_id, address(0), msg.sender, "", hostname, "", name);
