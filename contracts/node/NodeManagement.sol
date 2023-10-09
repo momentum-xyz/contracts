@@ -229,6 +229,36 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         return address(bytes20(keccak256(pubkey)));
     }
 
+
+    /**
+     * @dev Returns 64-bit long public key (stripping 0x04 if nessesary)
+     * @param pubkey Public key
+     * @return 64-bit long pubkey
+    */
+    function isPublicKey(bytes memory pubkey)
+    internal
+    pure
+    returns (bool){
+        return (pubkey.length==64) || (pubkey.length==65  && pubkey[0]==0x04 );
+    }
+
+
+    /**
+     * @dev Returns 64-bit long public key (stripping 0x04 if nessesary)
+     * @param pubkey Public key
+     * @return 64-bit long pubkey
+    */
+    function sanitizePublicKey(bytes calldata pubkey)
+    internal
+    pure
+    returns ( bytes memory){
+        if (pubkey.length==65){
+            return pubkey[1:];
+        }
+        return pubkey;
+    }
+
+
     /**
      * @dev Recover's the signer of the message
      * @param message Prefixed message
@@ -383,7 +413,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param new_pubkey new public key
      */
     function updateNodePubkey(uint256 node_id, bytes calldata new_pubkey) public {
-        require(node_id != 0 && new_pubkey.length == 64, "Invalid input");
+        require(node_id != 0 && isPublicKey(new_pubkey), "Invalid input");
         uint256 node_index = nodes_index[node_id];
         require(node_index != 0, "Node not registered");
         Node storage node = nodes[node_index];
@@ -435,7 +465,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param name Node's name
      */
     function addNodeWithMom(uint256 node_id, string calldata hostname, string calldata name, bytes calldata pubkey) public {
-        require(node_id != 0 && bytes(hostname).length != 0 && bytes(name).length != 0 && msg.sender != address(0) && pubkey.length==64, "Invalid input");
+        require(node_id != 0 && bytes(hostname).length != 0 && bytes(name).length != 0 && msg.sender != address(0) && isPublicKey(pubkey), "Invalid input");
         require(nodes_index[node_id] == 0, "Node already mapped");
         IERC20(mom_token).safeTransferFrom(payable(msg.sender), address(this), feeMom);
         _addNode(node_id,hostname,name,pubkey);
@@ -449,7 +479,7 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param name Node's name
      */
     function addNodeWithEth(uint256 node_id, string calldata hostname, string calldata name, bytes calldata pubkey) public {
-        require(node_id != 0 && bytes(hostname).length != 0 && bytes(name).length != 0 && msg.sender != address(0), "Invalid input");
+        require(node_id != 0 && bytes(hostname).length != 0 && bytes(name).length != 0 && msg.sender != address(0) && isPublicKey(pubkey) , "Invalid input");
         require(nodes_index[node_id] == 0, "Node already mapped");
 //
 //        E.safeTransferFrom(payable(msg.sender), address(this), feeETH);
