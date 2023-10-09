@@ -28,27 +28,27 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /**
      * @notice MOM token address
      */
-    address mom_token;
+    address public mom_token;
 
     /**
      * @notice Odyssey NFT's token address
      */
-    address odyssey_nft;
+    address public odyssey_nft;
 
     /**
      * @notice Treasury address
      */
-    address treasury;
+    address public treasury;
 
     /**
      * @notice Fee to register a node in Mom
      */
-    uint256 feeMom;
+    uint256 public feeMom;
 
     /**
      * @notice Fee to register a node in ETH
      */
-    uint256 feeETH;
+    uint256 public feeETH;
 
     /**
      * @dev Node struct with info about the node
@@ -73,27 +73,27 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /**
      * @notice Map the Node ID to the it's index in the vector
      */
-    mapping(uint256 => uint256) nodes_index;
+    mapping(uint256 => uint256) public nodes_index;
 
     /**
      * @notice Map an Odyssey ID to it's node index
      */
-    mapping(uint256 => NodeIndex) node_from_odyssey;
+    mapping(uint256 => NodeIndex) public node_from_odyssey;
 
     /**
      * @notice Map an Odyssey ID to it's index in the vector
      */
-    mapping(uint256 => uint256) odysseys_index;
+    mapping(uint256 => uint256) public odysseys_index;
 
     /**
      * @notice Map a Node ID to it's vector of Odysseys
      */
-    mapping(uint256 => uint256[]) odysseys;
+    mapping(uint256 => uint256[]) public odysseys;
 
     /**
      * @notice Nodes mapped
      */
-    Node[] nodes;
+    Node[] public nodes;
 
     /**
      * @notice storage gap for upgrades
@@ -219,14 +219,17 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /**
      * @dev Calcuate address for given public key
      * @param pubkey Public key
-     * @return Address that corresponds to public key
+     * @return addr Address that corresponds to public key
     */
     function calculateAddress(bytes memory pubkey)
     internal
     pure
-    returns (address){
-//        return address(bytes20(keccak256( abi.encodePacked(pubkey))));
-        return address(bytes20(keccak256(pubkey)));
+    returns (address addr){
+        bytes32 hash = keccak256(pubkey);
+        assembly {
+            mstore(0, hash)
+            addr := mload(0)
+        }
     }
 
 
@@ -451,8 +454,8 @@ contract NodeManagement is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      */
     function _addNode(uint256 node_id, string memory hostname, string memory name, bytes calldata pubkey) internal {
         nodes_index[node_id] = nodes.length;
-
-        Node memory node = Node(node_id, name, hostname, msg.sender, sanitizePublicKey(pubkey),calculateAddress(pubkey));
+        bytes memory pk = sanitizePublicKey(pubkey);
+        Node memory node = Node(node_id, name, hostname, msg.sender, pk,calculateAddress(pk));
         nodes.push(node);
 
         emit NodeUpdated(node_id, address(0), msg.sender, "", hostname, "", name);
