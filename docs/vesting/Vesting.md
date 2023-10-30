@@ -76,6 +76,18 @@ event HolderUpdated(address holder, uint256 amount, uint256 last_claim_date)
 | amount | uint256 | Amount updated |
 | last_claim_date | uint256 | The last claim date of that holder |
 
+### MOMAddressUpdated
+
+```solidity
+event MOMAddressUpdated(address mom)
+```
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| mom | address | MOM token address |
+
 ### Redeemed
 
 ```solidity

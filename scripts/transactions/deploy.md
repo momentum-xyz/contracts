@@ -1,0 +1,21 @@
+# Deploy script TXs list
+
+https://nova.arbiscan.io/tx/0x9d93ad500d11a965ce0177303510ba4ba100973d7f229b1d0a1ce71de07dd3d8
+https://nova.arbiscan.io/tx/0xafff27f8ff7a940546186e6e606ad664c0e5f3f57936e060f107962654f763c0
+https://nova.arbiscan.io/tx/0x5317f3233b0882a6465a9d1b97b1747713a3b4e50b9a036d734ef5c77329a053
+https://nova.arbiscan.io/tx/0xb2af055ba9328cac31edb3df9b870998fdf3eed23d7ea966deb1dac46158492a
+https://nova.arbiscan.io/tx/0x169d184ca3fc516b5c59be22ee60a556b2b90ad9e4d01036bf7e0eced3bfa93e
+https://nova.arbiscan.io/tx/0x86a14754aa1149e6e9b544560fd242ec8ca7f62bc2a1962772c207f5026a8716
+https://nova.arbiscan.io/tx/0xbdd7b7373e9d8f22ffe7837452b289c460b341b51daa3ff7d18538f5e7c7b741
+https://nova.arbiscan.io/tx/0xb7b218af5d95e47bb3525178627e0e2a3212090c695836d3228fbb1a0c4e2f8c
+https://nova.arbiscan.io/tx/0x84f248c81ced7aa392aa187e864da832256c144552579f141f396de19b64cb1c
+https://nova.arbiscan.io/tx/0xc5b4557d8701dfe7b94663332b767b2d4c91c06776b254467f6162119fc291aa
+https://nova.arbiscan.io/tx/0xdb129b1d4e6cc88d85333875e14cdd16ef9e82d02c0207cde5a33eed8163d9aa
+https://nova.arbiscan.io/tx/0xdc8fa29afd1241ec66528edaaef816ed287d1d88bdd8e975ef09d318c8b99eef
+https://nova.arbiscan.io/tx/0xe5d8624a96e908b48d431313ce25365e22b92390f05f1a6701f24702bd877266
+https://nova.arbiscan.io/tx/0x6841307439bf8194f36c0f78f3ae55afd70ff5a401a85974316514c02b89db69
+https://nova.arbiscan.io/tx/0xb794b4acbf18eacf7d5a3782931c6abf867665bb459bb40409cd31123455e31b
+
+# Mint 5 MOM and 5 DAD for test after deploy
+https://nova.arbiscan.io/tx/0xb0f79d5b02f6b5b480cc93f1f8405fe107e0fd53f3cb11fd69765fd15cc2d9d5
+https://nova.arbiscan.io/tx/0x945caa843e059e453d2189a005621e6693781d24d3ea326f174ed3642ea4fab9
