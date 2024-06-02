@@ -23,7 +23,14 @@ const config: HardhatUserConfig = {
     format: "json",
     only: ["^contracts"],
     flat: true
-  }
+  },
+  networks: {
+    arb_nova: {
+      url: `https://nova.arbitrum.io/rpc`,
+      chainId: 42170,
+      accounts: [""]
+    }
+  },
 };
 
 export default config;
